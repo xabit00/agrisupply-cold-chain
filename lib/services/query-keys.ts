@@ -5,6 +5,7 @@ export const queryKeys = {
     all: ["shipments"] as const,
     list: (params: PaginationParams) => ["shipments", "list", params] as const,
     detail: (id: string) => ["shipments", "detail", id] as const,
+    stats: ["shipments", "stats"] as const,
   },
   iot: {
     telemetry: (shipmentId: string) => ["iot", "telemetry", shipmentId] as const,

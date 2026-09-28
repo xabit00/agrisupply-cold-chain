@@ -32,3 +32,16 @@ export function useShipmentDetailQuery(id: string | null) {
     enabled: Boolean(id),
   });
 }
+
+export function useShipmentStatsQuery() {
+  return useQuery({
+    queryKey: queryKeys.shipments.stats,
+    queryFn: async () => {
+      const response = await shipmentService.getColdChainMetrics();
+      if (!response.success || !response.data) {
+        throw new Error(response.error || "Failed to fetch cold-chain metrics");
+      }
+      return response.data;
+    },
+  });
+}

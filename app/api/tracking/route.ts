@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { Geofence } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 const geofences: Geofence[] = [
   {
     zoneId: "geo_origin_01",

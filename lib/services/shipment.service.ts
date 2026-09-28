@@ -1,5 +1,5 @@
 import { apiClient } from "./api-client";
-import { Shipment, PaginatedResult, PaginationParams } from "@/lib/types";
+import { Shipment, PaginatedResult, PaginationParams, ColdChainMetrics } from "@/lib/types";
 
 export const shipmentService = {
   async getShipments(params: PaginationParams) {
@@ -8,10 +8,15 @@ export const shipmentService = {
       pageSize: params.pageSize.toString(),
       ...(params.searchQuery ? { searchQuery: params.searchQuery } : {}),
       ...(params.statusFilter ? { statusFilter: params.statusFilter } : {}),
+      ...(params.categoryFilter ? { categoryFilter: params.categoryFilter } : {}),
       ...(params.sortBy ? { sortBy: params.sortBy } : {}),
       ...(params.sortOrder ? { sortOrder: params.sortOrder } : {}),
     });
     return apiClient.get<PaginatedResult<Shipment>>(`/api/shipments?${query.toString()}`);
+  },
+
+  async getColdChainMetrics() {
+    return apiClient.get<ColdChainMetrics>("/api/shipments/stats");
   },
 
   async getShipmentById(id: string) {

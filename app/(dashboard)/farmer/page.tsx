@@ -1,68 +1,24 @@
 "use client";
 
-import React from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { MetricCard } from "@/components/shared/metric-card";
-import { StatusBadge } from "@/components/shared/status-badge";
-import { DataTable } from "@/components/shared/data-table";
-import { useShipmentsQuery } from "@/lib/hooks/use-shipments-query";
-import { useShipmentStore } from "@/stores/shipment.store";
-import { Shipment } from "@/lib/types";
-import { ColumnDef } from "@tanstack/react-table";
-import { formatDate, formatTemperature } from "@/lib/utils/formatters";
-import { Sprout, Thermometer, ShieldAlert, Truck } from "lucide-react";
+import { ShipmentTable } from "@/components/features/shipments/shipment-table";
+import { useShipmentStatsQuery } from "@/lib/hooks/use-shipments-query";
+import { queryKeys } from "@/lib/services/query-keys";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils/cn";
+import { RefreshCw, Sprout, Truck, Timer, ShieldAlert } from "lucide-react";
 
 export default function FarmerPage() {
-  const { pagination, setPagination } = useShipmentStore();
-  const { data, isLoading } = useShipmentsQuery(pagination);
+  const queryClient = useQueryClient();
+  const { data: metrics, isLoading, isRefetching } = useShipmentStatsQuery();
 
-  const columns: ColumnDef<Shipment, unknown>[] = [
-    {
-      accessorKey: "trackingNumber",
-      header: "Tracking ID",
-      cell: ({ row }) => (
-        <span className="font-semibold text-emerald-800 font-mono text-xs">
-          {row.getValue("trackingNumber")}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "produce.name",
-      header: "Produce & Quantity",
-      cell: ({ row }) => (
-        <div>
-          <p className="font-medium text-slate-800">{row.original.produce.name}</p>
-          <p className="text-[11px] text-slate-500">
-            {row.original.produce.quantityKg.toLocaleString()} kg · {row.original.produce.category}
-          </p>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "status",
-      header: "Cold-Chain Status",
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
-    },
-    {
-      accessorKey: "produce.optimalTempMin",
-      header: "Temp Target",
-      cell: ({ row }) => (
-        <span className="text-xs text-slate-600">
-          {formatTemperature(row.original.produce.optimalTempMin)} -{" "}
-          {formatTemperature(row.original.produce.optimalTempMax)}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "createdAt",
-      header: "Registered",
-      cell: ({ row }) => (
-        <span className="text-xs text-slate-500">
-          {formatDate(row.original.createdAt)}
-        </span>
-      ),
-    },
-  ];
+  const handleRefresh = () => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.shipments.all });
+  };
+
+  const breachCount = metrics?.temperatureBreachCount ?? 0;
 
   return (
     <div className="space-y-6">
@@ -70,55 +26,64 @@ export default function FarmerPage() {
         heading="Farmer Dispatch & Harvest Hub"
         subheading="Register produce batches, monitor cold-chain handoffs, and audit vault compliance."
         badge="Active Region: Salinas Valley"
-      />
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isRefetching || isLoading}
+        >
+          <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", isRefetching && "animate-spin")} />
+          Sync Cold-Chain
+        </Button>
+      </PageHeader>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          title="Active Harvests"
-          value={data?.total ?? 2}
-          subtitle="Batches in pipeline"
+          title="Registered Batches"
+          value={metrics?.totalShipments ?? 0}
+          subtitle="Lots across all categories"
           icon={Sprout}
-          variant="success"
+          variant="default"
         />
         <MetricCard
-          title="In Transit"
-          value={1}
-          subtitle="Reefers on route"
+          title="Active Cold-Chain"
+          value={metrics?.activeShipments ?? 0}
+          subtitle="Harvested · transit · vault"
           icon={Truck}
-          variant="default"
-        />
-        <MetricCard
-          title="Mean Cold-Box Temp"
-          value="3.2°C"
-          subtitle="Target 1.5°C - 4.0°C"
-          icon={Thermometer}
-          variant="default"
-        />
-        <MetricCard
-          title="SLA Breach Count"
-          value={0}
-          subtitle="100% compliant"
-          icon={ShieldAlert}
           variant="success"
+        />
+        <MetricCard
+          title="Avg Delivery Cycle"
+          value={`${metrics?.avgDeliveryHours ?? 0}h`}
+          subtitle="Origin to retail handoff"
+          icon={Timer}
+          variant="default"
+        />
+        <MetricCard
+          title="SLA Breaches"
+          value={breachCount}
+          subtitle={`${metrics?.complianceRatePct ?? 100}% compliant · ${metrics?.lossRatePct ?? 0}% loss`}
+          icon={ShieldAlert}
+          variant={breachCount > 0 ? "danger" : "success"}
         />
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900">Registered Produce Shipments</h2>
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">
+              Registered Produce Shipments
+            </h2>
+            <p className="text-xs text-slate-500">
+              Server-filtered, sortable and paginated register. Select any row to inspect its
+              cold-chain SLA envelope.
+            </p>
+          </div>
         </div>
 
-        <DataTable
-          columns={columns}
-          data={data?.items ?? []}
-          isLoading={isLoading}
-          totalCount={data?.total}
-          pageIndex={pagination.page}
-          pageSize={pagination.pageSize}
-          onPageChange={(p) => setPagination({ page: p })}
-          onPageSizeChange={(s) => setPagination({ pageSize: s, page: 1 })}
-        />
-      </div>
+        <ShipmentTable />
+      </section>
     </div>
   );
 }

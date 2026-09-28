@@ -63,12 +63,16 @@ export async function POST(request: Request) {
       message: `Authenticated as ${account.user.role}`,
     });
 
-    // Set secure HTTP-only cookie for Next.js middleware checking
+    // Set cookie for Next.js middleware quick-check (readable by client for Bearer fallback)
     response.cookies.set({
       name: AUTH_COOKIE_NAME,
       value: token,
       httpOnly: false, // Accessible by client and middleware for quick check
-      secure: process.env.NODE_ENV === "production",
+      // Only mark secure when actually served over HTTPS, so local/LAN http demos
+      // still receive the cookie (browsers drop Secure cookies on plain http origins).
+      secure:
+        process.env.NODE_ENV === "production" &&
+        new URL(request.url).protocol === "https:",
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24, // 24 hours
