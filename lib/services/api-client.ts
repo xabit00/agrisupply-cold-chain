@@ -1,4 +1,5 @@
 import { ApiResponse } from "@/lib/types";
+import { AUTH_COOKIE_NAME } from "@/lib/constants/roles";
 
 class ApiClient {
   private baseUrl: string = "";
@@ -6,7 +7,19 @@ class ApiClient {
   private getAuthHeader(): Record<string, string> {
     if (typeof window === "undefined") return {};
     const token = localStorage.getItem("token");
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
+    }
+    // Cookie fallback
+    const match = document.cookie
+      .split(";")
+      .map((c) => c.trim())
+      .find((c) => c.startsWith(`${AUTH_COOKIE_NAME}=`));
+    if (match) {
+      const cookieToken = match.split("=")[1];
+      return { Authorization: `Bearer ${cookieToken}` };
+    }
+    return {};
   }
 
   async request<T>(
@@ -14,8 +27,12 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
+        signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
           ...this.getAuthHeader(),
@@ -23,20 +40,25 @@ class ApiClient {
         },
       });
 
-      const data = await response.json();
+      clearTimeout(timeoutId);
+
+      const data = await response.json().catch(() => ({}));
+
       if (!response.ok) {
         return {
           success: false,
           data: null as unknown as T,
-          error: data.message || "An unexpected error occurred",
+          error: data.error || data.message || `Request failed with status ${response.status}`,
         };
       }
-      return data;
+
+      return data as ApiResponse<T>;
     } catch (error) {
+      const isAbort = error instanceof DOMException && error.name === "AbortError";
       return {
         success: false,
         data: null as unknown as T,
-        error: error instanceof Error ? error.message : "Network error",
+        error: isAbort ? "Request timed out after 15 seconds" : (error instanceof Error ? error.message : "Network error"),
       };
     }
   }
@@ -45,19 +67,19 @@ class ApiClient {
     return this.request<T>(endpoint, { ...options, method: "GET" });
   }
 
-  post<T>(endpoint: string, body: unknown, options?: RequestInit) {
+  post<T>(endpoint: string, body?: unknown, options?: RequestInit) {
     return this.request<T>(endpoint, {
       ...options,
       method: "POST",
-      body: JSON.stringify(body),
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   }
 
-  put<T>(endpoint: string, body: unknown, options?: RequestInit) {
+  put<T>(endpoint: string, body?: unknown, options?: RequestInit) {
     return this.request<T>(endpoint, {
       ...options,
       method: "PUT",
-      body: JSON.stringify(body),
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   }
 
@@ -67,3 +89,4 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient();
+
