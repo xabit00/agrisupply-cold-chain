@@ -1,11 +1,34 @@
 import {
   Shipment,
+  ShipmentCreateRequest,
+  ShipmentCompliance,
+  LocationCheckpoint,
   PaginatedResult,
   PaginationParams,
   ColdChainMetrics,
   ProduceCategory,
 } from "@/lib/types";
 import { initialMockShipments } from "@/lib/constants/mock-shipments";
+import { AMBIENT_PRESET } from "@/lib/constants/produce-presets";
+import { MOCK_USERS } from "@/lib/constants/roles";
+
+/**
+ * Create payload: the validated create DTO plus the optional server-assigned
+ * fields the store is allowed to honour (tracking number, status, timestamps and
+ * alert flags). Declared explicitly rather than intersected with `Partial<Shipment>`
+ * so callers never have to supply server-owned geo coordinates.
+ */
+export type ShipmentCreatePayload = ShipmentCreateRequest & {
+  trackingNumber?: string;
+  status?: Shipment["status"];
+  currentLocation?: Shipment["currentLocation"];
+  temperatureAlert?: boolean;
+  humidityAlert?: boolean;
+  tamperAlert?: boolean;
+  dispatchedAt?: string;
+  deliveredAt?: string;
+  produce?: ShipmentCreateRequest["produce"] & { id?: string };
+};
 
 /**
  * Module-scoped in-memory transactional store.
@@ -56,6 +79,36 @@ function matchesSearch(shipment: Shipment, term: string): boolean {
     shipment.destination.name.toLowerCase().includes(term) ||
     shipment.destination.address.toLowerCase().includes(term)
   );
+}
+
+const STAFF_MEMBERS = Object.values(MOCK_USERS).map((account) => account.user);
+
+/** Resolves a custodian id (transporter / warehouse / retailer) to a display label. */
+function custodianLabel(id?: string): string | undefined {
+  if (!id) return undefined;
+  const match = STAFF_MEMBERS.find((member) => member.id === id);
+  return match ? `${match.name} · ${match.organizationId}` : undefined;
+}
+
+function resolveCheckpoint(
+  provided: Partial<LocationCheckpoint> | undefined,
+  fallbackName: string,
+  fallbackLabel?: string
+): LocationCheckpoint {
+  if (provided && provided.name && provided.name.trim().length > 0) {
+    return {
+      name: provided.name,
+      address: provided.address ?? "Address pending confirmation",
+      coordinates: provided.coordinates ?? { lat: 0, lng: 0 },
+      reachedAt: provided.reachedAt,
+    };
+  }
+
+  return {
+    name: fallbackLabel ?? fallbackName,
+    address: "Address pending confirmation",
+    coordinates: { lat: 0, lng: 0 },
+  };
 }
 
 export function listShipments(params: Partial<PaginationParams>): PaginatedResult<Shipment> {
@@ -112,10 +165,30 @@ export function findShipmentById(id: string): Shipment | undefined {
   );
 }
 
-export function createShipment(payload: Partial<Shipment>): Shipment {
+export function createShipment(payload: ShipmentCreatePayload): Shipment {
   const now = new Date().toISOString();
   const produce = payload.produce;
   const categorySuffix = (produce?.category ?? "General").slice(0, 4).toUpperCase();
+
+  const storageMode = payload.storageMode ?? AMBIENT_PRESET.storageMode;
+  // Ambient lots submit no controlled-atmosphere window, so the ambient envelope is
+  // recorded instead — the lot still evaluates against an SLA afterwards.
+  const ambientEnvelope =
+    storageMode === "Ambient" ? AMBIENT_PRESET : undefined;
+
+  const compliance: ShipmentCompliance | undefined = payload.destinationType
+    ? {
+        destinationType: payload.destinationType,
+        requiresTransport: payload.requiresTransport ?? false,
+        tamperSealEnabled: payload.tamperSealEnabled ?? false,
+        sealId: payload.sealId,
+      }
+    : undefined;
+
+  const destinationFallback =
+    custodianLabel(payload.warehouseId) ??
+    custodianLabel(payload.retailerId) ??
+    "Direct consumer drop-off";
 
   const shipment: Shipment = {
     id: `SHP-${String(idSequence++).padStart(3, "0")}`,
@@ -131,26 +204,29 @@ export function createShipment(payload: Partial<Shipment>): Shipment {
       name: produce?.name ?? "Unspecified Produce",
       category: produce?.category ?? "Vegetables",
       quantityKg: produce?.quantityKg ?? 0,
-      optimalTempMin: produce?.optimalTempMin ?? 0,
-      optimalTempMax: produce?.optimalTempMax ?? 4,
-      optimalHumidityMin: produce?.optimalHumidityMin ?? 70,
-      optimalHumidityMax: produce?.optimalHumidityMax ?? 90,
+      optimalTempMin: produce?.optimalTempMin ?? ambientEnvelope?.tempMin ?? 0,
+      optimalTempMax: produce?.optimalTempMax ?? ambientEnvelope?.tempMax ?? 4,
+      optimalHumidityMin:
+        produce?.optimalHumidityMin ?? ambientEnvelope?.humidityMin ?? 70,
+      optimalHumidityMax:
+        produce?.optimalHumidityMax ?? ambientEnvelope?.humidityMax ?? 90,
     },
-    origin: payload.origin ?? {
-      name: "Unspecified Origin",
-      address: "Not provided",
-      coordinates: { lat: 0, lng: 0 },
-    },
-    destination: payload.destination ?? {
-      name: "Unspecified Destination",
-      address: "Not provided",
-      coordinates: { lat: 0, lng: 0 },
-    },
+    origin: resolveCheckpoint(payload.origin, "Unspecified Origin"),
+    destination: resolveCheckpoint(
+      payload.destination,
+      "Unspecified Destination",
+      destinationFallback
+    ),
     status: payload.status ?? "Draft",
+    storageMode,
+    containers: payload.containers?.length ? payload.containers : undefined,
     currentLocation: payload.currentLocation,
     temperatureAlert: payload.temperatureAlert ?? false,
     humidityAlert: payload.humidityAlert ?? false,
     tamperAlert: payload.tamperAlert ?? false,
+    photos: payload.photos?.length ? payload.photos : undefined,
+    notes: payload.notes,
+    compliance,
     createdAt: now,
     dispatchedAt: payload.dispatchedAt,
     deliveredAt: payload.deliveredAt,

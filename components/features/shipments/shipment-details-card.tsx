@@ -15,6 +15,10 @@ interface ShipmentDetailsCardProps {
 export function ShipmentDetailsCard({ shipment, onClose }: ShipmentDetailsCardProps) {
   if (!shipment) return null;
 
+  const transportLabel =
+    shipment.transporterId ??
+    (shipment.compliance?.requiresTransport === false ? "Farm pickup" : "Not assigned");
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in-50">
       <div className="relative w-full max-w-xl rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
@@ -102,6 +106,92 @@ export function ShipmentDetailsCard({ shipment, onClose }: ShipmentDetailsCardPr
               </div>
             </div>
           </div>
+
+          {/* Registration metadata captured by the M4 form */}
+          {(shipment.storageMode || shipment.containers?.length || shipment.compliance || shipment.notes) && (
+            <div className="rounded-lg border border-slate-100 p-3.5 space-y-2">
+              <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+                Registration & Compliance
+              </h4>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-slate-600">
+                <div>
+                  <span className="block text-slate-400">Storage mode</span>
+                  <span className="font-semibold text-slate-900">
+                    {shipment.storageMode ?? "Not specified"}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-slate-400">Handover route</span>
+                  <span className="font-semibold text-slate-900">
+                    {shipment.compliance?.destinationType ?? "Not specified"}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-slate-400">Transport assigned</span>
+                  <span className="font-semibold text-slate-900">{transportLabel}</span>
+                </div>
+                <div>
+                  <span className="block text-slate-400">Tamper seal</span>
+                  <span className="font-semibold text-slate-900">
+                    {shipment.compliance?.tamperSealEnabled
+                      ? shipment.compliance.sealId ?? "Sealed (no reference)"
+                      : "Not sealed"}
+                  </span>
+                </div>
+              </div>
+
+              {shipment.containers && shipment.containers.length > 0 && (
+                <div className="pt-1">
+                  <span className="block text-slate-400">Container split</span>
+                  <ul className="mt-1 space-y-0.5">
+                    {shipment.containers.map((container) => (
+                      <li key={container.id} className="flex justify-between gap-3">
+                        <span className="text-slate-700">{container.label}</span>
+                        <span className="font-mono text-[11px] text-slate-600">
+                          {container.quantityKg.toLocaleString()} kg
+                          {container.sealId ? ` · ${container.sealId}` : ""}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {shipment.notes && (
+                <div className="pt-1">
+                  <span className="block text-slate-400">Handling notes</span>
+                  <p className="text-slate-700">{shipment.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Cold-chain evidence captured by the M4 photo step */}
+          {shipment.photos && shipment.photos.length > 0 && (
+            <div className="rounded-lg border border-slate-100 p-3.5">
+              <h4 className="mb-2 font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+                Cold-Chain Evidence ({shipment.photos.length})
+              </h4>
+              <ul className="grid grid-cols-3 gap-2">
+                {shipment.photos.map((photo) => (
+                  <li
+                    key={photo.id}
+                    className="overflow-hidden rounded-lg border border-slate-200"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photo.dataUrl}
+                      alt={photo.label}
+                      className="h-20 w-full object-cover"
+                    />
+                    <span className="block truncate px-1.5 py-1 text-[10px] text-slate-500">
+                      {photo.label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Alert Status */}
           <div className="flex items-center justify-between rounded-lg border p-3 bg-slate-50">

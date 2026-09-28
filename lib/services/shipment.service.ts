@@ -1,5 +1,11 @@
 import { apiClient } from "./api-client";
-import { Shipment, PaginatedResult, PaginationParams, ColdChainMetrics } from "@/lib/types";
+import {
+  Shipment,
+  PaginatedResult,
+  PaginationParams,
+  ColdChainMetrics,
+  ShipmentCreateRequest,
+} from "@/lib/types";
 
 export const shipmentService = {
   async getShipments(params: PaginationParams) {
@@ -23,8 +29,8 @@ export const shipmentService = {
     return apiClient.get<Shipment>(`/api/shipments/${id}`);
   },
 
-  async createShipment(shipment: Partial<Shipment>) {
-    return apiClient.post<Shipment>("/api/shipments", shipment);
+  async createShipment(request: ShipmentCreateRequest) {
+    return apiClient.post<Shipment>("/api/shipments", request);
   },
 
   async updateShipmentStatus(id: string, status: Shipment["status"]) {

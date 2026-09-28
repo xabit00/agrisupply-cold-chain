@@ -1,18 +1,21 @@
 "use client";
 
+import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { MetricCard } from "@/components/shared/metric-card";
 import { ShipmentTable } from "@/components/features/shipments/shipment-table";
+import { ShipmentCreateDialog } from "@/components/features/shipments/shipment-create-dialog";
 import { useShipmentStatsQuery } from "@/lib/hooks/use-shipments-query";
 import { queryKeys } from "@/lib/services/query-keys";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
-import { RefreshCw, Sprout, Truck, Timer, ShieldAlert } from "lucide-react";
+import { Plus, RefreshCw, Sprout, Truck, Timer, ShieldAlert } from "lucide-react";
 
 export default function FarmerPage() {
   const queryClient = useQueryClient();
   const { data: metrics, isLoading, isRefetching } = useShipmentStatsQuery();
+  const [createOpen, setCreateOpen] = React.useState(false);
 
   const handleRefresh = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.shipments.all });
@@ -27,14 +30,16 @@ export default function FarmerPage() {
         subheading="Register produce batches, monitor cold-chain handoffs, and audit vault compliance."
         badge="Active Region: Salinas Valley"
       >
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={isRefetching || isLoading}
-        >
+        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefetching || isLoading}>
           <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", isRefetching && "animate-spin")} />
           Sync Cold-Chain
+        </Button>
+        <Button
+          size="sm"
+          className="bg-emerald-600 text-white hover:bg-emerald-700"
+          onClick={() => setCreateOpen(true)}
+        >
+          <Plus className="mr-1.5 h-3.5 w-3.5" /> Register Batch
         </Button>
       </PageHeader>
 
@@ -84,6 +89,8 @@ export default function FarmerPage() {
 
         <ShipmentTable />
       </section>
+
+      <ShipmentCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   );
 }

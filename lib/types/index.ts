@@ -54,6 +54,12 @@ export type ShipmentStatus =
   | 'Delivered'
   | 'Compromised';
 
+/** Temperature-control regime applied during storage and transport. */
+export type StorageMode = 'Ambient' | 'Refrigerated' | 'Frozen';
+
+/** Where the lot is handed over; drives which custodian id is mandatory. */
+export type DestinationType = 'Warehouse' | 'RetailOutlet' | 'DirectConsumer';
+
 export interface GeoCoordinate {
   lat: number;
   lng: number;
@@ -67,6 +73,33 @@ export interface LocationCheckpoint {
   reachedAt?: string;
 }
 
+export type PhotoSource = 'camera' | 'upload';
+
+export interface ShipmentPhoto {
+  id: string;
+  label: string;
+  dataUrl: string;
+  source: PhotoSource;
+  capturedAt: string;
+  sizeBytes: number;
+}
+
+/** Splittable transport unit (reefer pallet / container) with its own seal. */
+export interface ShipmentContainer {
+  id: string;
+  label: string;
+  quantityKg: number;
+  sealId?: string;
+}
+
+/** Chain-of-custody compliance metadata captured at registration time. */
+export interface ShipmentCompliance {
+  destinationType: DestinationType;
+  requiresTransport: boolean;
+  tamperSealEnabled: boolean;
+  sealId?: string;
+}
+
 export interface Shipment {
   id: string;
   trackingNumber: string;
@@ -78,14 +111,57 @@ export interface Shipment {
   origin: LocationCheckpoint;
   destination: LocationCheckpoint;
   status: ShipmentStatus;
+  storageMode?: StorageMode;
+  containers?: ShipmentContainer[];
+  compliance?: ShipmentCompliance;
   currentLocation?: GeoCoordinate;
   temperatureAlert: boolean;
   humidityAlert: boolean;
   tamperAlert: boolean;
+  photos?: ShipmentPhoto[];
+  notes?: string;
   createdAt: string;
   dispatchedAt?: string;
   deliveredAt?: string;
   updatedAt: string;
+}
+
+/**
+ * Create-request DTO accepted by POST /api/shipments.
+ * Validated by the SAME zod schema on the client (multi-step form) and on the
+ * server (route handler), so validation rules can never drift.
+ */
+export interface ShipmentCreateRequest {
+  farmerId: string;
+  destinationType: DestinationType;
+  requiresTransport: boolean;
+  transporterId?: string;
+  warehouseId?: string;
+  retailerId?: string;
+  storageMode: StorageMode;
+  tamperSealEnabled: boolean;
+  sealId?: string;
+  splitsIntoContainers: boolean;
+  containers: ShipmentContainer[];
+  photos: ShipmentPhoto[];
+  notes?: string;
+  produce: {
+    name: string;
+    category: ProduceCategory;
+    quantityKg: number;
+    optimalTempMin?: number;
+    optimalTempMax?: number;
+    optimalHumidityMin?: number;
+    optimalHumidityMax?: number;
+  };
+  origin: {
+    name: string;
+    address: string;
+  };
+  destination: {
+    name: string;
+    address: string;
+  };
 }
 
 // --- 3. SENSOR & TELEMETRY (IoT) ---

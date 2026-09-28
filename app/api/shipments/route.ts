@@ -1,34 +1,21 @@
 import { NextResponse } from "next/server";
-import { PaginationParams, Shipment } from "@/lib/types";
+import { PaginationParams } from "@/lib/types";
 import { listShipments, createShipment } from "@/lib/server/shipment-store";
+import { shipmentSchema } from "@/lib/validators/shipment.schema";
+import {
+  PRODUCE_CATEGORIES,
+  SHIPMENT_STATUSES,
+} from "@/lib/constants/produce-presets";
 
 export const dynamic = "force-dynamic";
 
 function parseStatusFilter(value: string | null): PaginationParams["statusFilter"] {
-  const allowed: PaginationParams["statusFilter"][] = [
-    "ALL",
-    "Draft",
-    "Harvested",
-    "InTransit",
-    "ColdStorage",
-    "Delivered",
-    "Compromised",
-  ];
-  const match = allowed.find((candidate) => candidate === value);
+  const match = SHIPMENT_STATUSES.find((candidate) => candidate === value);
   return match ?? "ALL";
 }
 
 function parseCategoryFilter(value: string | null): PaginationParams["categoryFilter"] {
-  const allowed: PaginationParams["categoryFilter"][] = [
-    "ALL",
-    "Dairy",
-    "Fruits",
-    "Vegetables",
-    "Meat",
-    "Seafood",
-    "Flowers",
-  ];
-  const match = allowed.find((candidate) => candidate === value);
+  const match = PRODUCE_CATEGORIES.find((candidate) => candidate === value);
   return match ?? "ALL";
 }
 
@@ -52,14 +39,35 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  let raw: unknown;
+
   try {
-    const payload = (await request.json()) as Partial<Shipment>;
-    const created = createShipment(payload);
-    return NextResponse.json({ success: true, data: created }, { status: 201 });
+    raw = await request.json();
   } catch {
     return NextResponse.json(
-      { success: false, data: null, error: "Invalid shipment payload" },
+      { success: false, data: null, error: "Request body must be valid JSON" },
       { status: 400 }
     );
   }
+
+  // Same zod schema the multi-step form uses client-side — one contract, no drift.
+  const parsed = shipmentSchema.safeParse(raw);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        data: null,
+        error: "Shipment validation failed",
+        issues: parsed.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      },
+      { status: 400 }
+    );
+  }
+
+  const created = createShipment(parsed.data);
+  return NextResponse.json({ success: true, data: created }, { status: 201 });
 }
