@@ -10,7 +10,7 @@ import {
 } from "@/lib/types";
 import { initialMockShipments } from "@/lib/constants/mock-shipments";
 import { AMBIENT_PRESET } from "@/lib/constants/produce-presets";
-import { MOCK_USERS } from "@/lib/constants/roles";
+import { MOCK_USERS, getOrganizationDisplayName } from "@/lib/constants/roles";
 
 /**
  * Create payload: the validated create DTO plus the optional server-assigned
@@ -87,7 +87,9 @@ const STAFF_MEMBERS = Object.values(MOCK_USERS).map((account) => account.user);
 function custodianLabel(id?: string): string | undefined {
   if (!id) return undefined;
   const match = STAFF_MEMBERS.find((member) => member.id === id);
-  return match ? `${match.name} · ${match.organizationId}` : undefined;
+  return match
+    ? match.name + " · " + getOrganizationDisplayName(match.organizationId)
+    : undefined;
 }
 
 function resolveCheckpoint(

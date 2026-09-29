@@ -19,6 +19,14 @@ export const AUTH_COOKIE_NAME = "agri_auth_token";
 
 export interface MockUserAccount {
   user: User;
+  organization: {
+    displayName: string;
+    location?: {
+      name: string;
+      address: string;
+      region: string;
+    };
+  };
   // bcrypt hash for "Pass123!" with 10 salt rounds
   passwordHash: string;
 }
@@ -34,6 +42,14 @@ export const MOCK_USERS: Record<string, MockUserAccount> = {
       avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
       createdAt: "2026-01-15T08:00:00Z",
     },
+    organization: {
+      displayName: "Sargodha Growers Cooperative",
+      location: {
+        name: "Sargodha Farm A",
+        address: "University Road, Sargodha, Punjab",
+        region: "Sargodha, Punjab",
+      },
+    },
     passwordHash: "$2b$10$7hoagj8pSy9rHjzbnRi6UOb/byduuhXrYWsenAdHWSqJP4QzW8Mnu",
   },
   "transporter@agrisupply.pk": {
@@ -45,6 +61,9 @@ export const MOCK_USERS: Record<string, MockUserAccount> = {
       organizationId: "org_arctichaul_fleet",
       avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
       createdAt: "2026-01-20T08:00:00Z",
+    },
+    organization: {
+      displayName: "ArcticHaul Fleet",
     },
     passwordHash: "$2b$10$7hoagj8pSy9rHjzbnRi6UOb/byduuhXrYWsenAdHWSqJP4QzW8Mnu",
   },
@@ -58,6 +77,14 @@ export const MOCK_USERS: Record<string, MockUserAccount> = {
       avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&h=100&fit=crop",
       createdAt: "2026-02-01T08:00:00Z",
     },
+    organization: {
+      displayName: "AgriSupply Lahore Cold Storage",
+      location: {
+        name: "Lahore Cold Storage",
+        address: "Kot Lakhpat Industrial Estate, Lahore, Punjab",
+        region: "Lahore, Punjab",
+      },
+    },
     passwordHash: "$2b$10$7hoagj8pSy9rHjzbnRi6UOb/byduuhXrYWsenAdHWSqJP4QzW8Mnu",
   },
   "retailer@agrisupply.pk": {
@@ -70,7 +97,25 @@ export const MOCK_USERS: Record<string, MockUserAccount> = {
       avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop",
       createdAt: "2026-02-10T08:00:00Z",
     },
+    organization: {
+      displayName: "AgriSupply Lahore Market",
+      location: {
+        name: "Lahore Produce Market",
+        address: "Badami Bagh, Lahore, Punjab",
+        region: "Lahore, Punjab",
+      },
+    },
     passwordHash: "$2b$10$7hoagj8pSy9rHjzbnRi6UOb/byduuhXrYWsenAdHWSqJP4QzW8Mnu",
   },
 };
 
+export function getMockAccountByUserId(userId?: string): MockUserAccount | undefined {
+  if (!userId) return undefined;
+  return Object.values(MOCK_USERS).find((account) => account.user.id === userId);
+}
+
+export function getOrganizationDisplayName(organizationId: string): string {
+  return Object.values(MOCK_USERS).find(
+    (account) => account.user.organizationId === organizationId
+  )?.organization.displayName ?? "Organization";
+}

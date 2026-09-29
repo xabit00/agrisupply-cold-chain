@@ -8,8 +8,19 @@ import {
   STORAGE_MODES,
   requiresPhotoEvidence,
 } from "@/lib/constants/produce-presets";
+import { MOCK_USERS } from "@/lib/constants/roles";
 
 const MAX_PHOTO_KB = Math.round(MAX_PHOTO_BYTES / 1000);
+const USERS = Object.values(MOCK_USERS).map((account) => account.user);
+const VALID_WAREHOUSE_IDS = new Set(
+  USERS.filter((user) => user.role === "WarehouseAdmin").map((user) => user.id)
+);
+const VALID_RETAILER_IDS = new Set(
+  USERS.filter((user) => user.role === "Retailer").map((user) => user.id)
+);
+const VALID_TRANSPORTER_IDS = new Set(
+  USERS.filter((user) => user.role === "Transporter").map((user) => user.id)
+);
 
 /**
  * Body accepted by PUT /api/shipments/[id] — a stage transition driven by the
@@ -159,6 +170,16 @@ export const shipmentSchema = z
         path: ["warehouseId"],
         message: "Select the receiving cold-storage facility",
       });
+    } else if (
+      values.destinationType === "Warehouse" &&
+      values.warehouseId &&
+      !VALID_WAREHOUSE_IDS.has(values.warehouseId)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["warehouseId"],
+        message: "Select a valid receiving cold-storage facility",
+      });
     }
 
     if (values.destinationType === "RetailOutlet" && !values.retailerId) {
@@ -167,6 +188,16 @@ export const shipmentSchema = z
         path: ["retailerId"],
         message: "Select the receiving retail outlet",
       });
+    } else if (
+      values.destinationType === "RetailOutlet" &&
+      values.retailerId &&
+      !VALID_RETAILER_IDS.has(values.retailerId)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["retailerId"],
+        message: "Select a valid receiving retail outlet",
+      });
     }
 
     if (values.requiresTransport && !values.transporterId) {
@@ -174,6 +205,16 @@ export const shipmentSchema = z
         code: z.ZodIssueCode.custom,
         path: ["transporterId"],
         message: "Select the assigned transporter",
+      });
+    } else if (
+      values.requiresTransport &&
+      values.transporterId &&
+      !VALID_TRANSPORTER_IDS.has(values.transporterId)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["transporterId"],
+        message: "Select a valid assigned transporter",
       });
     }
 

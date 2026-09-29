@@ -10,6 +10,7 @@ import { useOfflineStore } from "@/stores/offline.store";
 import { toast } from "@/stores/toast.store";
 import { SensorReading } from "@/lib/types";
 import { formatTemperature } from "@/lib/utils/formatters";
+import type { SocketStatus } from "@/providers/socket-provider";
 
 /** Rolling chart window — ~60s of readings at a 1.5s tick. */
 const MAX_POINTS = 40;
@@ -22,7 +23,7 @@ export interface TelemetryStream {
   /** Reading that put the shipment out of SLA, or undefined when recovered. */
   activeBreach?: SensorReading;
   isLoading: boolean;
-  status: "connecting" | "connected" | "disconnected";
+  status: SocketStatus;
   isConnected: boolean;
 }
 

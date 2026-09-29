@@ -255,7 +255,7 @@ export const initialMockShipments: Shipment[] = [
       optimalHumidityMax: 98,
     },
     origin: {
-      name: "Quetta Valley Farm Hub",
+      name: "Quetta Farm Hub",
       address: "Sariab Road, Quetta",
       coordinates: { lat: 30.1798, lng: 66.975 },
     },

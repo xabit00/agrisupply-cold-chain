@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
-export type SocketStatus = "connecting" | "connected" | "disconnected";
+export type SocketStatus = "connecting" | "connected" | "reconnecting" | "disconnected";
 
 interface SocketContextType {
   socket: Socket | null;
@@ -41,20 +41,35 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     setSocket(instance);
 
-    instance.on("connect", () => setStatus("connected"));
-    instance.on("connect_error", () => setStatus("disconnected"));
-    instance.on("disconnect", () => setStatus("disconnected"));
+    const handleConnect = () => setStatus("connected");
+    const handleConnectError = (error: Error) => {
+      console.error("[socket] connect_error:", error.message, error);
+      setStatus(instance.active ? "reconnecting" : "disconnected");
+    };
+    const handleDisconnect = () => {
+      setStatus(instance.active ? "reconnecting" : "disconnected");
+    };
+    const handleReconnectAttempt = () => setStatus("reconnecting");
+    const handleReconnectFailed = () => setStatus("disconnected");
+
+    instance.on("connect", handleConnect);
+    instance.on("connect_error", handleConnectError);
+    instance.on("disconnect", handleDisconnect);
+    instance.io.on("reconnect_attempt", handleReconnectAttempt);
+    instance.io.on("reconnect_failed", handleReconnectFailed);
 
     return () => {
-      instance.removeAllListeners();
+      instance.off("connect", handleConnect);
+      instance.off("connect_error", handleConnectError);
+      instance.off("disconnect", handleDisconnect);
+      instance.io.off("reconnect_attempt", handleReconnectAttempt);
+      instance.io.off("reconnect_failed", handleReconnectFailed);
       instance.disconnect();
-      setSocket(null);
-      setStatus("disconnected");
     };
   }, []);
 
   const value = useMemo<SocketContextType>(
-    () => ({ socket, status, isConnected: status === "connected" }),
+    () => ({ socket, status, isConnected: Boolean(socket?.connected) }),
     [socket, status]
   );
 
