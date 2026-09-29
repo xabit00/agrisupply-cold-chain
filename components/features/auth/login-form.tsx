@@ -13,10 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 const PRESETS = [
-  { role: "Farmer" as UserRole, name: "Elena Rostova", email: "farmer@agrisupply.com", badge: "bg-emerald-100 text-emerald-800" },
-  { role: "Transporter" as UserRole, name: "Marcus Vance", email: "transporter@agrisupply.com", badge: "bg-sky-100 text-sky-800" },
-  { role: "WarehouseAdmin" as UserRole, name: "Sarah Chen", email: "warehouse@agrisupply.com", badge: "bg-amber-100 text-amber-800" },
-  { role: "Retailer" as UserRole, name: "David Kim", email: "retailer@agrisupply.com", badge: "bg-indigo-100 text-indigo-800" },
+  { role: "Farmer" as UserRole, name: "Muhammad Yousaf", email: "farmer@agrisupply.pk", badge: "bg-emerald-100 text-emerald-800" },
+  { role: "Transporter" as UserRole, name: "Asif Javed", email: "transporter@agrisupply.pk", badge: "bg-sky-100 text-sky-800" },
+  { role: "WarehouseAdmin" as UserRole, name: "Sara Ahmed", email: "warehouse@agrisupply.pk", badge: "bg-amber-100 text-amber-800" },
+  { role: "Retailer" as UserRole, name: "Nadia Hussain", email: "retailer@agrisupply.pk", badge: "bg-indigo-100 text-indigo-800" },
 ];
 
 export function LoginForm() {
@@ -33,7 +33,7 @@ export function LoginForm() {
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "farmer@agrisupply.com", password: "Pass123!" },
+    defaultValues: { email: "farmer@agrisupply.pk", password: "Pass123!" },
   });
 
   const handleSelectPreset = (p: typeof PRESETS[0]) => {
@@ -110,7 +110,7 @@ export function LoginForm() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-1">
           <label className="text-xs font-semibold text-slate-700">Email Address</label>
-          <Input type="email" placeholder="name@agrisupply.com" {...register("email")} disabled={isLoading} />
+          <Input type="email" placeholder="name@agrisupply.pk" {...register("email")} disabled={isLoading} />
           {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
         </div>
 

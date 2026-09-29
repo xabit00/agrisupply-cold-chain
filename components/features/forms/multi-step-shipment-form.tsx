@@ -154,7 +154,7 @@ function buildDefaultValues(farmerId: string): ShipmentFormData {
     },
     origin: {
       name: "Green Valley Farm Hub",
-      address: "128 Meadow Way, Salinas Valley CA",
+      address: "128 Meadow Way, Quetta Valley CA",
     },
     destination: {
       name: "Metro Cold Depot #4",

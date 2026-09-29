@@ -25,10 +25,10 @@ Click a **Demo Persona Fast-Select** tile — it fills the email/password for yo
 
 | Persona | Email | Password | Lands on |
 |---|---|---|---|
-| Farmer (Elena Rostova) | `farmer@agrisupply.com` | `Pass123!` | `/farmer` |
-| Transporter (Marcus Vance) | `transporter@agrisupply.com` | `Pass123!` | `/transporter` |
-| Warehouse (Sarah Chen) | `warehouse@agrisupply.com` | `Pass123!` | `/warehouse` |
-| Retailer (David Kim) | `retailer@agrisupply.com` | `Pass123!` | `/retailer` |
+| Farmer (Muhammad Yousaf) | `farmer@agrisupply.pk` | `Pass123!` | `/farmer` |
+| Transporter (Asif Javed) | `transporter@agrisupply.pk` | `Pass123!` | `/transporter` |
+| Warehouse (Sara Ahmed) | `warehouse@agrisupply.pk` | `Pass123!` | `/warehouse` |
+| Retailer (Nadia Hussain) | `retailer@agrisupply.pk` | `Pass123!` | `/retailer` |
 
 **Pass / fail:** wrong password → inline red error, no redirect. Correct → redirected to that
 role's route, avatar + name visible in the sidebar.

@@ -4,7 +4,8 @@ import React from "react";
 import { Shipment } from "@/lib/types";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { formatTemperature, formatHumidity, formatDate } from "@/lib/utils/formatters";
-import { X, Thermometer, Droplets, MapPin, ShieldCheck, AlertTriangle } from "lucide-react";
+import { X, Thermometer, Droplets, MapPin, ShieldCheck, AlertTriangle, Trash2 } from "lucide-react";
+import { useDeleteShipmentMutation } from "@/lib/hooks/use-shipment-mutations";
 import { Button } from "@/components/ui/button";
 
 interface ShipmentDetailsCardProps {
@@ -13,6 +14,11 @@ interface ShipmentDetailsCardProps {
 }
 
 export function ShipmentDetailsCard({ shipment, onClose }: ShipmentDetailsCardProps) {
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
+  const deleteShipment = useDeleteShipmentMutation();
+
+  React.useEffect(() => setConfirmDelete(false), [shipment?.id]);
+
   if (!shipment) return null;
 
   const transportLabel =
@@ -20,8 +26,8 @@ export function ShipmentDetailsCard({ shipment, onClose }: ShipmentDetailsCardPr
     (shipment.compliance?.requiresTransport === false ? "Farm pickup" : "Not assigned");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in-50">
-      <div className="relative w-full max-w-xl rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
+    <div role="presentation" className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-3 backdrop-blur-sm animate-in fade-in-50 sm:items-center sm:p-4">
+      <section role="dialog" aria-modal="true" aria-label="Shipment inspector" className="relative max-h-[calc(100dvh-1.5rem)] w-full max-w-xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-xl sm:max-h-[calc(100dvh-2rem)] sm:p-6">
         <div className="flex items-center justify-between border-b pb-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -47,7 +53,7 @@ export function ShipmentDetailsCard({ shipment, onClose }: ShipmentDetailsCardPr
             <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[11px]">
               Produce Specification
             </h4>
-            <div className="grid grid-cols-2 gap-3 text-slate-600">
+            <div className="grid grid-cols-1 gap-3 text-slate-600 sm:grid-cols-2">
               <div>
                 <span className="text-slate-400 block">Item Name:</span>
                 <span className="font-semibold text-slate-900">{shipment.produce.name}</span>
@@ -60,7 +66,7 @@ export function ShipmentDetailsCard({ shipment, onClose }: ShipmentDetailsCardPr
           </div>
 
           {/* Cold-Chain Thresholds */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
               <div className="flex items-center gap-1.5 text-emerald-800 font-semibold mb-1">
                 <Thermometer className="h-4 w-4" />
@@ -113,7 +119,7 @@ export function ShipmentDetailsCard({ shipment, onClose }: ShipmentDetailsCardPr
               <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[11px]">
                 Registration & Compliance
               </h4>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-slate-600">
+              <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 text-slate-600 sm:grid-cols-2">
                 <div>
                   <span className="block text-slate-400">Storage mode</span>
                   <span className="font-semibold text-slate-900">
@@ -210,12 +216,31 @@ export function ShipmentDetailsCard({ shipment, onClose }: ShipmentDetailsCardPr
           </div>
         </div>
 
-        <div className="mt-5 flex justify-end">
-          <Button variant="outline" size="sm" onClick={onClose}>
-            Close Inspector
-          </Button>
+        <div className="mt-5 flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          {shipment.status === "Draft" ? (
+            confirmDelete ? (
+              <div className="flex flex-wrap items-center gap-2 text-xs text-rose-700">
+                <span className="font-semibold">Delete this draft permanently?</span>
+                <Button type="button" variant="outline" size="sm" onClick={() => setConfirmDelete(false)} disabled={deleteShipment.isPending}>Cancel</Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={deleteShipment.isPending}
+                  onClick={() => deleteShipment.mutate({ id: shipment.id, trackingNumber: shipment.trackingNumber }, { onSuccess: onClose })}
+                >
+                  {deleteShipment.isPending ? "Deleting..." : "Confirm delete"}
+                </Button>
+              </div>
+            ) : (
+              <Button type="button" variant="outline" size="sm" className="text-rose-700 hover:bg-rose-50" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" /> Delete draft
+              </Button>
+            )
+          ) : <span />}
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>Close inspector</Button>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

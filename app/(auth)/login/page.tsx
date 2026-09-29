@@ -12,7 +12,7 @@ export default function LoginPage() {
             AgriSupply Portal
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            Smart Cold-Chain & Multi-Tenant Logistics System
+            Pakistan&apos;s Smart Agricultural Logistics Platform
           </p>
         </div>
         <LoginForm />

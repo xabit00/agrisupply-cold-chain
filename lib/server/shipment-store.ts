@@ -276,6 +276,14 @@ export function updateShipment(id: string, patch: Partial<Shipment>): Shipment |
   return updated;
 }
 
+
+export function deleteShipment(id: string): Shipment | null {
+  const existing = findShipmentById(id);
+  if (!existing) return null;
+  shipments = shipments.filter((shipment) => shipment.id !== existing.id);
+  return existing;
+}
+
 export function computeColdChainMetrics(): ColdChainMetrics {
   const total = shipments.length;
   const active = shipments.filter((s) => ACTIVE_STATUSES.includes(s.status)).length;

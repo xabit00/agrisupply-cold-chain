@@ -11,10 +11,10 @@ import { Columns3, MoveRight, SearchX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface KanbanBoardProps {
-  onSelect: (shipment: Shipment) => void;
+  onSelect?: (shipment: Shipment) => void;
 }
 
-export function KanbanBoardContainer({ onSelect }: KanbanBoardProps) {
+export function KanbanBoardContainer({ onSelect = () => undefined }: KanbanBoardProps) {
   const { data, isLoading } = useAllShipmentsQuery();
   const searchQuery =
     useShipmentStore((state) => state.pagination.searchQuery) ?? "";

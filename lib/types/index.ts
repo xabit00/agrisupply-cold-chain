@@ -23,7 +23,6 @@ export interface AuthTokens {
 
 export interface AuthSession {
   user: User;
-  token: string;
 }
 
 // --- 2. PRODUCE & SHIPMENT ---
@@ -240,6 +239,7 @@ export interface GeofenceAlert {
 export type OfflineActionType =
   | 'CREATE_SHIPMENT'
   | 'UPDATE_STATUS'
+  | 'DELETE_SHIPMENT'
   | 'RECORD_SENSOR_BREACH'
   | 'UPDATE_KANBAN_STAGE';
 

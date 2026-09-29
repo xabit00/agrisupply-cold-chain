@@ -15,6 +15,7 @@ export interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   isLoading?: boolean;
+  errorMessage?: string;
   totalCount?: number;
   pageIndex?: number;
   pageSize?: number;
@@ -28,6 +29,7 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   isLoading,
+  errorMessage,
   totalCount,
   pageIndex = 1,
   pageSize = 10,
@@ -64,7 +66,13 @@ export function DataTable<TData, TValue>({
               ))}
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {isLoading ? (
+              {errorMessage ? (
+                <tr>
+                  <td colSpan={columns.length} className="h-32 px-4 text-center text-sm text-rose-700" role="alert">
+                    {errorMessage}
+                  </td>
+                </tr>
+              ) : isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={`skel-${i}`} className="animate-pulse">
                     {columns.map((_, cIdx) => (
@@ -108,6 +116,7 @@ export function DataTable<TData, TValue>({
               <select
                 value={pageSize}
                 onChange={(e) => onPageSizeChange(Number(e.target.value))}
+                aria-label="Rows per page"
                 className="rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
               >
                 <option value={5}>5 / page</option>

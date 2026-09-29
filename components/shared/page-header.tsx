@@ -25,9 +25,9 @@ export function PageHeader({
         className
       )}
     >
-      <div className="space-y-1">
-        <div className="flex items-center gap-2.5">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+      <div className="min-w-0 space-y-1">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h1 className="text-balance text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             {heading}
           </h1>
           {badge && (

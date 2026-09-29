@@ -35,9 +35,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify password: test both plain match and bcrypt compare
-    const isPlainMatch = password === account.passwordPlain;
-    const isHashMatch = isPlainMatch || (await bcrypt.compare(password, account.passwordHash));
+    const isHashMatch = await bcrypt.compare(password, account.passwordHash);
 
     if (!isHashMatch) {
       return NextResponse.json(
@@ -54,7 +52,6 @@ export async function POST(request: Request) {
 
     const session: AuthSession = {
       user: account.user,
-      token,
     };
 
     const response = NextResponse.json({
@@ -63,11 +60,11 @@ export async function POST(request: Request) {
       message: `Authenticated as ${account.user.role}`,
     });
 
-    // Set cookie for Next.js middleware quick-check (readable by client for Bearer fallback)
+    // Keep the signed session inaccessible to client-side JavaScript.
     response.cookies.set({
       name: AUTH_COOKIE_NAME,
       value: token,
-      httpOnly: false, // Accessible by client and middleware for quick check
+      httpOnly: true,
       // Only mark secure when actually served over HTTPS, so local/LAN http demos
       // still receive the cookie (browsers drop Secure cookies on plain http origins).
       secure:

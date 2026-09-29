@@ -3,113 +3,107 @@
 import React, { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { LogOut, WifiOff } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
-import { ROLE_DEFAULT_ROUTES, AUTH_COOKIE_NAME } from "@/lib/constants/roles";
+import { ROLE_DEFAULT_ROUTES } from "@/lib/constants/roles";
 import { useOnlineStatus } from "@/lib/hooks/use-online-status";
+import { SocketProvider } from "@/providers/socket-provider";
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+const ROLE_LABELS = {
+  Farmer: "Farmer Hub",
+  Transporter: "Transporter Fleet",
+  WarehouseAdmin: "Cold Storage Vault",
+  Retailer: "Retailer Intake",
+} as const;
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, logout } = useAuthStore();
-  const { isOnline } = useOnlineStatus();
+  const { user, isAuthenticated, isInitialized, logout } = useAuthStore();
+  const { isOnline, pendingTransactionsCount } = useOnlineStatus();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login");
+    if (!isInitialized) return;
+    if (!isAuthenticated || !user) {
+      router.replace("/login");
       return;
     }
 
-    // Role-based boundary enforcement
-    if (user) {
-      const allowedRoute = ROLE_DEFAULT_ROUTES[user.role];
-      const currentSection = "/" + pathname.split("/")[1];
-
-      // If user navigates to an unauthorized role portal, redirect back to their portal
-      if (
-        ["/farmer", "/transporter", "/warehouse", "/retailer"].includes(currentSection) &&
-        currentSection !== allowedRoute
-      ) {
-        router.replace(allowedRoute);
-      }
+    const allowedRoute = ROLE_DEFAULT_ROUTES[user.role];
+    const currentSection = `/${pathname.split("/")[1]}`;
+    if (["/farmer", "/transporter", "/warehouse", "/retailer"].includes(currentSection) && currentSection !== allowedRoute) {
+      router.replace(allowedRoute);
     }
-  }, [isAuthenticated, user, pathname, router]);
+  }, [isAuthenticated, isInitialized, user, pathname, router]);
 
-  if (!isAuthenticated || !user) {
+  if (!isInitialized || !isAuthenticated || !user) {
     return (
-      <div className="flex h-screen items-center justify-center text-sm text-slate-500">
+      <main id="main-content" className="flex min-h-dvh items-center justify-center bg-slate-50 px-4 text-sm text-slate-500">
         Authenticating session...
-      </div>
+      </main>
     );
   }
 
-  const handleSignOut = () => {
-    // Clear cookie
-    document.cookie = `${AUTH_COOKIE_NAME}=; path=/; max-age=0;`;
-    logout();
-    router.push("/login");
+  const roleRoute = ROLE_DEFAULT_ROUTES[user.role];
+
+  const handleSignOut = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+    } finally {
+      logout();
+      router.replace("/login");
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-dvh bg-slate-50">
       {!isOnline && (
-        <div className="bg-amber-500 px-4 py-1.5 text-center text-xs font-semibold text-white shadow-inner">
-          Offline Mode Active - Mutations are queued and will automatically sync once reconnected.
+        <div className="flex items-center justify-center gap-2 bg-amber-500 px-3 py-2 text-center text-xs font-semibold text-white shadow-inner">
+          <WifiOff className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span>Offline mode · {pendingTransactionsCount} change{pendingTransactionsCount === 1 ? "" : "s"} waiting to sync</span>
         </div>
       )}
-      <header className="border-b bg-white px-6 py-3 flex items-center justify-between sticky top-0 z-40">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-bold text-slate-900 tracking-tight">AgriSupply Cold-Chain</span>
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-3 py-3 backdrop-blur sm:px-6">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-6">
+            <Link href={roleRoute} className="flex min-w-0 items-center gap-2 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" aria-hidden="true" />
+              <span className="truncate text-sm font-bold tracking-tight text-slate-900 sm:text-base">
+                AgriSupply <span className="hidden sm:inline">Cold-Chain</span>
+              </span>
+            </Link>
+            <nav aria-label="Role navigation" className="hidden sm:block">
+              <Link
+                href={roleRoute}
+                aria-current={pathname.startsWith(roleRoute) ? "page" : undefined}
+                className="border-b-2 border-emerald-600 pb-1 text-xs font-bold text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              >
+                {ROLE_LABELS[user.role]}
+              </Link>
+            </nav>
           </div>
 
-          <nav className="flex gap-4 text-xs font-medium">
-            <Link
-              href="/farmer"
-              className={pathname.startsWith("/farmer") ? "text-emerald-700 font-bold border-b-2 border-emerald-600 pb-1" : "text-slate-500 hover:text-slate-900"}
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="hidden text-right sm:flex sm:flex-col">
+              <span className="max-w-32 truncate text-xs font-semibold text-slate-800">{user.name}</span>
+              <span className="text-[10px] font-medium text-emerald-700">{ROLE_LABELS[user.role]}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => void handleSignOut()}
+              aria-label="Sign out"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-slate-200 px-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:px-3"
             >
-              Farmer Hub
-            </Link>
-            <Link
-              href="/transporter"
-              className={pathname.startsWith("/transporter") ? "text-emerald-700 font-bold border-b-2 border-emerald-600 pb-1" : "text-slate-500 hover:text-slate-900"}
-            >
-              Transporter Fleet
-            </Link>
-            <Link
-              href="/warehouse"
-              className={pathname.startsWith("/warehouse") ? "text-emerald-700 font-bold border-b-2 border-emerald-600 pb-1" : "text-slate-500 hover:text-slate-900"}
-            >
-              Cold Storage Vault
-            </Link>
-            <Link
-              href="/retailer"
-              className={pathname.startsWith("/retailer") ? "text-emerald-700 font-bold border-b-2 border-emerald-600 pb-1" : "text-slate-500 hover:text-slate-900"}
-            >
-              Retailer Intake
-            </Link>
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col text-right">
-            <span className="text-xs font-semibold text-slate-800">{user.name}</span>
-            <span className="text-[10px] text-emerald-600 font-medium">{user.role}</span>
+              <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">Sign out</span>
+            </button>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="rounded border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 transition"
-          >
-            Sign out
-          </button>
         </div>
       </header>
 
-      <main className="p-6 max-w-7xl mx-auto">{children}</main>
+      <main id="main-content" className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-6 sm:py-6">
+        {children}
+      </main>
     </div>
   );
 }

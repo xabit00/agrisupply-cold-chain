@@ -1,5 +1,5 @@
 import { apiClient } from "./api-client";
-import { Geofence, GeofenceAlert } from "@/lib/types";
+import type { GeoCoordinate, Geofence, GeofenceAlert } from "@/lib/types";
 
 export const trackingService = {
   async getGeofences() {
@@ -7,7 +7,11 @@ export const trackingService = {
   },
 
   async getGeofenceAlerts(shipmentId?: string) {
-    const query = shipmentId ? `?shipmentId=${shipmentId}` : "";
+    const query = shipmentId ? `?shipmentId=${encodeURIComponent(shipmentId)}` : "";
     return apiClient.get<GeofenceAlert[]>(`/api/tracking${query}`);
+  },
+
+  async evaluatePosition(shipmentId: string, coordinate: GeoCoordinate) {
+    return apiClient.post<GeofenceAlert[]>("/api/tracking", { shipmentId, coordinate });
   },
 };

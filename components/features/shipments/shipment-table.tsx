@@ -34,7 +34,7 @@ export function ShipmentTable({ initialStatus }: { initialStatus?: ShipmentStatu
     }
   }, [initialStatus, setStatusFilter, pagination.statusFilter]);
 
-  const { data, isLoading, refetch } = useShipmentsQuery(pagination);
+  const { data, isLoading, isError, error, refetch } = useShipmentsQuery(pagination);
 
   const handleSort = (field: string) => {
     const isCurrent = pagination.sortBy === field;
@@ -51,7 +51,8 @@ export function ShipmentTable({ initialStatus }: { initialStatus?: ShipmentStatu
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by Tracking ID, produce, or city..."
+            aria-label="Search shipments"
+            placeholder="Search by tracking ID, produce, or city..."
             value={pagination.searchQuery || ""}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-md border border-slate-200 pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -74,6 +75,7 @@ export function ShipmentTable({ initialStatus }: { initialStatus?: ShipmentStatu
           )}
 
           <select
+            aria-label="Filter by produce category"
             value={pagination.categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value as ProduceCategory | "ALL")}
             className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700"
@@ -125,7 +127,8 @@ export function ShipmentTable({ initialStatus }: { initialStatus?: ShipmentStatu
               resetFilters();
               refetch();
             }}
-            title="Reset Filters"
+            title="Reset filters"
+            aria-label="Reset filters"
           >
             <RotateCcw className="h-3.5 w-3.5" />
           </Button>
@@ -137,6 +140,7 @@ export function ShipmentTable({ initialStatus }: { initialStatus?: ShipmentStatu
           columns={columns}
           data={data?.items ?? []}
           isLoading={isLoading}
+          errorMessage={isError ? error.message : undefined}
           totalCount={data?.total}
           pageIndex={pagination.page}
           pageSize={pagination.pageSize}

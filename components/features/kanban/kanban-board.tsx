@@ -5,11 +5,14 @@ import {
   DndContext,
   DragEndEvent,
   PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
   closestCorners,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
 import { Shipment, ShipmentStatus } from "@/lib/types";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { SHIPMENT_STATUSES } from "@/lib/constants/produce-presets";
 import { KanbanColumn } from "./kanban-column";
 
@@ -29,7 +32,9 @@ export function KanbanBoard({
 }: KanbanBoardProps) {
   // 6px of travel before a drag starts, so a plain click still opens the card.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const grouped = useMemo(() => {

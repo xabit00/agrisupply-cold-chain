@@ -1,26 +1,8 @@
 import { ApiResponse } from "@/lib/types";
-import { AUTH_COOKIE_NAME } from "@/lib/constants/roles";
 
 class ApiClient {
   private baseUrl: string = "";
 
-  private getAuthHeader(): Record<string, string> {
-    if (typeof window === "undefined") return {};
-    const token = localStorage.getItem("token");
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
-    }
-    // Cookie fallback
-    const match = document.cookie
-      .split(";")
-      .map((c) => c.trim())
-      .find((c) => c.startsWith(`${AUTH_COOKIE_NAME}=`));
-    if (match) {
-      const cookieToken = match.split("=")[1];
-      return { Authorization: `Bearer ${cookieToken}` };
-    }
-    return {};
-  }
 
   async request<T>(
     endpoint: string,
@@ -33,9 +15,9 @@ class ApiClient {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
         signal: controller.signal,
+        credentials: "same-origin",
         headers: {
           "Content-Type": "application/json",
-          ...this.getAuthHeader(),
           ...options.headers,
         },
       });
@@ -43,6 +25,13 @@ class ApiClient {
       clearTimeout(timeoutId);
 
       const data = await response.json().catch(() => ({}));
+
+      if (response.status === 401 && typeof window !== "undefined") {
+        localStorage.removeItem("agri_supply_auth_session");
+        if (!window.location.pathname.startsWith("/login")) {
+          window.location.assign("/login");
+        }
+      }
 
       if (!response.ok) {
         return {

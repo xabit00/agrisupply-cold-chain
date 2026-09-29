@@ -36,4 +36,8 @@ export const shipmentService = {
   async updateShipmentStatus(id: string, status: Shipment["status"]) {
     return apiClient.put<Shipment>(`/api/shipments/${id}`, { status });
   },
+
+  async deleteShipment(id: string) {
+    return apiClient.delete<Shipment>(`/api/shipments/${id}`);
+  },
 };

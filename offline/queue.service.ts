@@ -1,6 +1,8 @@
 import { db } from "./db";
-import { QueuedTransaction, OfflineActionType } from "@/lib/types";
+import type { QueuedTransaction, OfflineActionType } from "@/lib/types";
 import { apiClient } from "@/lib/services/api-client";
+
+let replayPromise: Promise<void> | null = null;
 
 export const queueService = {
   async enqueueMutation<T>(
@@ -21,51 +23,58 @@ export const queueService = {
       retryCount: 0,
       status: "pending",
     };
-
     await db.queuedTransactions.add(tx as QueuedTransaction);
     return tx;
   },
 
   async replayPendingTransactions(): Promise<void> {
-    const pending = await db.queuedTransactions
-      .where("status")
-      .equals("pending")
-      .toArray();
+    if (replayPromise) return replayPromise;
 
-    for (const tx of pending) {
-      try {
-        await db.queuedTransactions.update(tx.id, { status: "syncing" });
-        const res = await apiClient.request(tx.endpoint, {
-          method: tx.method,
-          body: JSON.stringify(tx.payload),
-          headers: {
-            "X-Idempotency-Key": tx.idempotencyKey,
-          },
-        });
+    replayPromise = (async () => {
+      const candidates = await db.queuedTransactions
+        .filter((tx) => (tx.status === "pending" || tx.status === "failed") && tx.retryCount < 5)
+        .sortBy("queuedAt");
 
-        if (res.success) {
-          await db.queuedTransactions.update(tx.id, {
-            status: "synced",
-            syncedAt: new Date().toISOString(),
+      for (const tx of candidates) {
+        try {
+          await db.queuedTransactions.update(tx.id, { status: "syncing", errorMessage: undefined });
+          const res = await apiClient.request(tx.endpoint, {
+            method: tx.method,
+            body: JSON.stringify(tx.payload),
+            headers: { "X-Idempotency-Key": tx.idempotencyKey },
           });
-        } else {
+
+          if (res.success) {
+            await db.queuedTransactions.update(tx.id, {
+              status: "synced",
+              syncedAt: new Date().toISOString(),
+              errorMessage: undefined,
+            });
+          } else {
+            await db.queuedTransactions.update(tx.id, {
+              status: "failed",
+              errorMessage: res.error,
+              retryCount: tx.retryCount + 1,
+            });
+          }
+        } catch (error) {
           await db.queuedTransactions.update(tx.id, {
             status: "failed",
-            errorMessage: res.error,
+            errorMessage: error instanceof Error ? error.message : "Sync error",
             retryCount: tx.retryCount + 1,
           });
         }
-      } catch (err) {
-        await db.queuedTransactions.update(tx.id, {
-          status: "failed",
-          errorMessage: err instanceof Error ? err.message : "Sync error",
-          retryCount: tx.retryCount + 1,
-        });
       }
-    }
+    })().finally(() => {
+      replayPromise = null;
+    });
+
+    return replayPromise;
   },
 
   async getPendingCount(): Promise<number> {
-    return db.queuedTransactions.where("status").equals("pending").count();
+    return db.queuedTransactions
+      .filter((tx) => tx.status === "pending" || tx.status === "failed" || tx.status === "syncing")
+      .count();
   },
 };

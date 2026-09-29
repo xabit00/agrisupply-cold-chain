@@ -1,7 +1,14 @@
 import jwt from "jsonwebtoken";
-import { User } from "@/lib/types";
+import type { User } from "@/lib/types";
 
-const JWT_SECRET = process.env.JWT_SECRET || "agrisupply-coldchain-secret-key-2026-strict";
+function jwtSecret(): string {
+  const configured = process.env.JWT_SECRET;
+  if (configured) return configured;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET must be configured in production");
+  }
+  return "agrisupply-coldchain-local-development-only";
+}
 
 export function signJwt(user: User): string {
   return jwt.sign(
@@ -14,25 +21,23 @@ export function signJwt(user: User): string {
       avatarUrl: user.avatarUrl,
       createdAt: user.createdAt,
     },
-    JWT_SECRET,
+    jwtSecret(),
     { expiresIn: "24h" }
   );
 }
 
 export function verifyJwt(token: string): User | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
-    if (!decoded || !decoded.sub || !decoded.role) {
-      return null;
-    }
+    const decoded = jwt.verify(token, jwtSecret()) as jwt.JwtPayload;
+    if (!decoded?.sub || !decoded.role || !decoded.name || !decoded.email || !decoded.organizationId) return null;
     return {
-      id: decoded.sub as string,
-      name: decoded.name as string,
-      email: decoded.email as string,
+      id: String(decoded.sub),
+      name: String(decoded.name),
+      email: String(decoded.email),
       role: decoded.role,
-      organizationId: decoded.organizationId as string,
-      avatarUrl: decoded.avatarUrl as string | undefined,
-      createdAt: decoded.createdAt as string,
+      organizationId: String(decoded.organizationId),
+      avatarUrl: decoded.avatarUrl ? String(decoded.avatarUrl) : undefined,
+      createdAt: decoded.createdAt ? String(decoded.createdAt) : new Date(0).toISOString(),
     };
   } catch {
     return null;

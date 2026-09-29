@@ -8,7 +8,7 @@ export default function HomePage() {
           <span>Cold-Chain Telemetry System</span>
         </div>
         <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-slate-900">
-          AgriSupply Logistics Platform
+          Pakistan&apos;s Smart Agricultural Logistics Platform
         </h1>
         <p className="text-sm text-slate-600 sm:text-base">
           Enterprise multi-tenant cold-chain management with live IoT telemetry, geofencing,

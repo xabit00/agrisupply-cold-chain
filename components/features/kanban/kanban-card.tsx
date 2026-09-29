@@ -51,16 +51,21 @@ export function KanbanCard({ shipment, onSelect }: KanbanCardProps) {
       }}
       className={cn(
         "group relative rounded-md border border-slate-200 bg-white p-3 shadow-sm",
-        "cursor-grab select-none hover:border-emerald-300 hover:shadow-md",
+        "select-none hover:border-emerald-300 hover:shadow-md",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
         isDragging && "z-50 rotate-2 opacity-40 shadow-xl"
       )}
-      {...attributes}
-      {...listeners}
+
     >
-      <div className="absolute right-2 top-2 text-slate-300 opacity-0 transition-opacity group-hover:opacity-100">
+      <button
+        type="button"
+        aria-label={`Drag ${shipment.trackingNumber} to another stage`}
+        className="absolute right-2 top-2 touch-none cursor-grab rounded p-1 text-slate-400 transition hover:bg-slate-100 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
+        {...attributes}
+        {...listeners}
+      >
         <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
-      </div>
+      </button>
 
       <div className="flex flex-wrap items-center gap-1.5">
         <span

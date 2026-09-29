@@ -29,7 +29,7 @@ export default function FarmerPage() {
       <PageHeader
         heading="Farmer Dispatch & Harvest Hub"
         subheading="Register produce batches, monitor cold-chain handoffs, and audit vault compliance."
-        badge="Active Region: Salinas Valley"
+        badge="Active Region: Quetta Valley"
       >
         <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefetching || isLoading}>
           <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", isRefetching && "animate-spin")} />

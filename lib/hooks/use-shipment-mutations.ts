@@ -176,3 +176,31 @@ export function useUpdateShipmentStatusMutation() {
     },
   });
 }
+
+export function useDeleteShipmentMutation() {
+  const queryClient = useQueryClient();
+  const isOnline = useOfflineStore((state) => state.isOnline);
+  const setPendingCount = useOfflineStore((state) => state.setPendingCount);
+
+  return useMutation<{ queued: boolean }, Error, { id: string; trackingNumber: string }>({
+    mutationFn: async ({ id }) => {
+      if (!isOnline) {
+        await queueService.enqueueMutation("DELETE_SHIPMENT", `/api/shipments/${id}`, "DELETE", null);
+        setPendingCount(await queueService.getPendingCount());
+        return { queued: true };
+      }
+      const response = await shipmentService.deleteShipment(id);
+      if (!response.success) throw new Error(response.error || "Failed to delete the draft shipment");
+      return { queued: false };
+    },
+    onSuccess: (result, { trackingNumber }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.shipments.all });
+      if (result.queued) {
+        toast.info("Draft deletion queued", `${trackingNumber} will be removed when the connection returns.`);
+      } else {
+        toast.success("Draft shipment deleted", `${trackingNumber} was removed from the register.`);
+      }
+    },
+    onError: (error) => toast.error("Draft deletion failed", error.message),
+  });
+}
