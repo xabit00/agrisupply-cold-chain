@@ -241,6 +241,20 @@ export function updateShipment(id: string, patch: Partial<Shipment>): Shipment |
   const existing = findShipmentById(id);
   if (!existing) return null;
 
+  const now = new Date().toISOString();
+
+  // Stage bookkeeping: leaving Draft stamps the dispatch time, reaching
+  // Delivered stamps the delivery time (and reverting to Draft clears it).
+  // Keeps the delivery-cycle analytics truthful when the Kanban board moves a
+  // card that has no handoff timestamps yet.
+  let dispatchedAt = existing.dispatchedAt;
+  let deliveredAt = existing.deliveredAt;
+  if (patch.status && patch.status !== existing.status) {
+    if (patch.status !== "Draft" && !dispatchedAt) dispatchedAt = now;
+    if (patch.status === "Delivered") deliveredAt = deliveredAt ?? now;
+    if (patch.status === "Draft") deliveredAt = undefined;
+  }
+
   const updated: Shipment = {
     ...existing,
     ...patch,
@@ -251,7 +265,9 @@ export function updateShipment(id: string, patch: Partial<Shipment>): Shipment |
     destination: patch.destination
       ? { ...existing.destination, ...patch.destination }
       : existing.destination,
-    updatedAt: new Date().toISOString(),
+    dispatchedAt,
+    deliveredAt,
+    updatedAt: now,
   };
 
   shipments = shipments.map((shipment) =>

@@ -45,3 +45,25 @@ export function useShipmentStatsQuery() {
     },
   });
 }
+
+/**
+ * Every batch the server holds (single page, newest first). Powers the Kanban
+ * board and the analytics charts, which both need the *whole* dataset rather
+ * than the paginated slice the register table asks for.
+ *
+ * Status filtering is deliberately NOT applied here: the board already
+ * segments by status into columns, so honouring it would hide whole columns.
+ */
+const BOARD_PARAMS: PaginationParams = {
+  page: 1,
+  pageSize: 100,
+  searchQuery: "",
+  statusFilter: "ALL",
+  categoryFilter: "ALL",
+  sortBy: "createdAt",
+  sortOrder: "desc",
+};
+
+export function useAllShipmentsQuery() {
+  return useShipmentsQuery(BOARD_PARAMS);
+}

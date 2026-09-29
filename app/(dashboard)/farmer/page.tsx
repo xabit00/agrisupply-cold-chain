@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/shared/page-header";
 import { MetricCard } from "@/components/shared/metric-card";
 import { ShipmentTable } from "@/components/features/shipments/shipment-table";
+import { MetricCharts } from "@/components/features/analytics/metric-charts";
 import { ShipmentCreateDialog } from "@/components/features/shipments/shipment-create-dialog";
 import { useShipmentStatsQuery } from "@/lib/hooks/use-shipments-query";
 import { queryKeys } from "@/lib/services/query-keys";
@@ -88,6 +89,18 @@ export default function FarmerPage() {
         </div>
 
         <ShipmentTable />
+      </section>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-base font-bold text-slate-900">Cold-Chain Analytics</h2>
+          <p className="text-xs text-slate-500">
+            Pipeline distribution, delivery-cycle and integrity metrics computed from the
+            same shipment register — they move as soon as a batch changes stage.
+          </p>
+        </div>
+
+        <MetricCharts />
       </section>
 
       <ShipmentCreateDialog open={createOpen} onOpenChange={setCreateOpen} />

@@ -4,11 +4,28 @@ import {
   MAX_PHOTO_BYTES,
   MAX_SHIPMENT_PHOTOS,
   PRODUCE_CATEGORIES,
+  SHIPMENT_STATUSES,
   STORAGE_MODES,
   requiresPhotoEvidence,
 } from "@/lib/constants/produce-presets";
 
 const MAX_PHOTO_KB = Math.round(MAX_PHOTO_BYTES / 1000);
+
+/**
+ * Body accepted by PUT /api/shipments/[id] — a stage transition driven by the
+ * Kanban board. `.strict()` so a caller cannot smuggle arbitrary fields onto
+ * the shipment record.
+ */
+export const shipmentStatusUpdateSchema = z
+  .object({
+    status: z.enum(SHIPMENT_STATUSES, {
+      errorMap: () => ({
+        message: "Unknown pipeline stage — must be a valid shipment status",
+      }),
+    }),
+  })
+  .strict();
+
 
 export const shipmentContainerSchema = z.object({
   id: z.string().min(1),

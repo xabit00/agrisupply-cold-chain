@@ -1,7 +1,7 @@
 # TESTING — Manual Test Script
 
-**Status:** M0–M4 complete (auth/RBAC, services+state, data tables, forms engine).
-Latest commit: `10bb115`. `tsc --noEmit` = 0 errors, `next lint` = clean, `next build` = success.
+**Status:** M0–M5 complete (auth/RBAC, services+state, data tables, forms engine, Kanban pipeline + analytics charts).
+Quality gates at the time of writing: `tsc --noEmit` = 0 errors, `next lint` = clean, `next build` = success.
 
 ---
 
@@ -120,7 +120,54 @@ The **Sync Cold-Chain** button in the header force-refetches (spinner while runn
 
 ---
 
-## 5. Cross-role check
+## 5. M5 test — Kanban pipeline board
+
+On `/farmer`, in the register toolbar, click **Board** (toggle next to the filters).
+
+| Check | Do | Expect |
+|---|---|---|
+| Columns | switch to Board | 6 columns: Draft → Harvested → InTransit → ColdStorage → Delivered → Compromised, each with a count + kg total |
+| Cards | look at columns | 8 seeded batches, showing produce, tracking #, kg, temp envelope, destination, photo/container counts |
+| **Drag** | drag any card into a different column | card moves, header shows `Saving…`, then **green toast** "<tracking #> moved to <stage>" |
+| Register sync | click **Register** toggle | the row now shows the new status |
+| Charts sync | scroll to **Cold-Chain Analytics** | "Batches by stage" bars re-balance immediately |
+| Reject drop | drop a card back where it started | **no** request fires, no toast (no-op) |
+| Empty column | drag the last card out of `Compromised` | friendly "No batches / drag here" placeholder |
+| Inspect | click **Inspect** on a card | detail card opens (same as clicking a table row) |
+| Filters | type in search / pick a category while in Board view | board narrows; status filter is hidden (columns already segment by status) |
+| Reset | ⟳ with filters active | board shows all 8 again |
+| Delivery analytics | drag a batch into **Delivered** | `deliveredAt` is stamped server-side, "Avg delivery cycle" chart gains that category, `avgDeliveryHours` metric updates |
+
+**Server-side guard (API check):**
+
+```powershell
+# Unknown stage must be rejected with 400 + issues[]
+Invoke-RestMethod -Method Put -Uri http://localhost:3000/api/shipments/SHP-001 `
+  -ContentType 'application/json' -Body '{"status":"BogusStage"}'   # → 400
+
+# Extra/unknown fields must be rejected too (.strict())
+Invoke-RestMethod -Method Put -Uri http://localhost:3000/api/shipments/SHP-001 `
+  -ContentType 'application/json' -Body '{"status":"InTransit","farmerId":"hacked"}'  # → 400
+```
+
+---
+
+## 6. M5 test — analytics charts
+
+Below the register on `/farmer`, section **Cold-Chain Analytics**:
+
+| Check | Expect |
+|---|---|
+| 3 KPI pills | Loss rate `12.5%`, SLA compliance `87.5%`, Avg delivery cycle `30.5h` (seed) |
+| Batches by stage | 6 bars, one per status, colored to match the status badges |
+| Avg delivery cycle | one bar per category **that has a completed delivery** (Dairy/Meat only at seed) |
+| Cold-chain integrity | stacked bars: green "within envelope" + red "active alert" (Flowers has the seeded alert) |
+| Tooltips | hover any bar for exact numbers |
+| No data | register empty → "No analytics yet" placeholder instead of blank charts |
+
+---
+
+## 7. Cross-role check
 
 Sign out via the **Sign out** button in the top-right header, then sign in as **Transporter** /
 **Warehouse** / **Retailer**.
@@ -130,7 +177,7 @@ expected** (they belong to later milestones), not a defect.
 
 ---
 
-## 6. Troubleshooting
+## 8. Troubleshooting
 
 | Symptom | Cause / fix |
 |---|---|
@@ -142,7 +189,7 @@ expected** (they belong to later milestones), not a defect.
 
 ---
 
-## 7. Quality gates (run before any commit)
+## 9. Quality gates (run before any commit)
 
 ```powershell
 npx tsc --noEmit     # 0 errors
@@ -152,9 +199,8 @@ npm run build        # completes
 
 ---
 
-## 8. Not built yet — don't report these as bugs
+## 10. Not built yet — don't report these as bugs
 
-- **M5** Kanban pipeline board + analytics charts
 - **M6** live IoT sensor stream / websockets
 - **M7** map & geofence tracking
 - **M8** offline queue manager UI (enqueue works now; the *list* screen doesn't exist)
@@ -163,7 +209,7 @@ npm run build        # completes
 
 ---
 
-## 9. Sign-off checklist
+## 11. Sign-off checklist
 
 - [ ] App boots, login works for all 4 personas
 - [ ] Farmer hub shows 4 tiles + 8 seeded rows
@@ -172,5 +218,7 @@ npm run build        # completes
 - [ ] Detail card shows photos / containers / seal
 - [ ] Search, filter, sort, pagination, empty state all behave
 - [ ] At least one deliberately invalid submission shows the right message
+- [ ] **Board** view shows 6 columns and a card drags across with a success toast
+- [ ] **Cold-Chain Analytics** renders 3 KPIs + 3 charts from real data
 - [ ] `tsc` / `lint` / `build` all green
 

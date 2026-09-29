@@ -7,7 +7,8 @@ import { useShipmentStore } from "@/stores/shipment.store";
 import { useShipmentsQuery } from "@/lib/hooks/use-shipments-query";
 import { ShipmentDetailsCard } from "./shipment-details-card";
 import { getShipmentColumns } from "./shipment-columns";
-import { Search, RotateCcw } from "lucide-react";
+import { KanbanBoardContainer } from "@/components/features/kanban/kanban-board-container";
+import { Search, RotateCcw, LayoutGrid, Table2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const CATEGORIES: ProduceCategory[] = ["Dairy", "Fruits", "Vegetables", "Meat", "Seafood", "Flowers"];
@@ -21,6 +22,8 @@ export function ShipmentTable({ initialStatus }: { initialStatus?: ShipmentStatu
     setStatusFilter,
     setCategoryFilter,
     resetFilters,
+    activeView,
+    setActiveView,
   } = useShipmentStore();
 
   const [activeShipment, setActiveShipment] = useState<Shipment | null>(null);
@@ -56,16 +59,19 @@ export function ShipmentTable({ initialStatus }: { initialStatus?: ShipmentStatu
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={pagination.statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as ShipmentStatus | "ALL")}
-            className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700"
-          >
-            <option value="ALL">All Statuses</option>
-            {STATUSES.map((st) => (
-              <option key={st} value={st}>{st}</option>
-            ))}
-          </select>
+          {activeView === "table" && (
+            <select
+              value={pagination.statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as ShipmentStatus | "ALL")}
+              className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700"
+              aria-label="Filter by status"
+            >
+              <option value="ALL">All Statuses</option>
+              {STATUSES.map((st) => (
+                <option key={st} value={st}>{st}</option>
+              ))}
+            </select>
+          )}
 
           <select
             value={pagination.categoryFilter}
@@ -77,6 +83,39 @@ export function ShipmentTable({ initialStatus }: { initialStatus?: ShipmentStatu
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
+
+          <div
+            role="group"
+            aria-label="Register view"
+            className="flex overflow-hidden rounded-md border border-slate-200"
+          >
+            <button
+              type="button"
+              aria-pressed={activeView === "table"}
+              onClick={() => setActiveView("table")}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold transition ${
+                activeView === "table"
+                  ? "bg-emerald-600 text-white"
+                  : "bg-white text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <Table2 className="h-3.5 w-3.5" aria-hidden="true" />
+              Register
+            </button>
+            <button
+              type="button"
+              aria-pressed={activeView === "kanban"}
+              onClick={() => setActiveView("kanban")}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold transition ${
+                activeView === "kanban"
+                  ? "bg-emerald-600 text-white"
+                  : "bg-white text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" />
+              Board
+            </button>
+          </div>
 
           <Button
             variant="outline"
@@ -93,16 +132,20 @@ export function ShipmentTable({ initialStatus }: { initialStatus?: ShipmentStatu
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={data?.items ?? []}
-        isLoading={isLoading}
-        totalCount={data?.total}
-        pageIndex={pagination.page}
-        pageSize={pagination.pageSize}
-        onPageChange={(p) => setPagination({ page: p })}
-        onPageSizeChange={(s) => setPagination({ pageSize: s, page: 1 })}
-      />
+      {activeView === "table" ? (
+        <DataTable
+          columns={columns}
+          data={data?.items ?? []}
+          isLoading={isLoading}
+          totalCount={data?.total}
+          pageIndex={pagination.page}
+          pageSize={pagination.pageSize}
+          onPageChange={(p) => setPagination({ page: p })}
+          onPageSizeChange={(s) => setPagination({ pageSize: s, page: 1 })}
+        />
+      ) : (
+        <KanbanBoardContainer onSelect={(s) => setActiveShipment(s)} />
+      )}
 
       <ShipmentDetailsCard
         shipment={activeShipment}
