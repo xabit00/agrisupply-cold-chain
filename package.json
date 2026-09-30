@@ -2,6 +2,9 @@
   "name": "agri-supply-cold-chain",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "node server.js --dev",
     "dev:next": "next dev",
@@ -54,6 +57,6 @@
     "typescript": "^6.0.3"
   },
   "prisma": {
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed-farmer-staging.js"
   }
 }
