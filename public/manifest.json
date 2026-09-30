@@ -1,0 +1,11 @@
+{
+  "name": "AgriSupply Cold Chain",
+  "short_name": "AgriSupply",
+  "description": "Pakistan's Smart Cold-Chain Logistics Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#059669",
+  "orientation": "portrait-primary",
+  "icons": []
+}
