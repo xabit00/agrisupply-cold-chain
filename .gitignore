@@ -23,8 +23,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
+# Local env files — never commit real secrets
 .env
+.env.local
+.env.*.local
 .env.*
 !.env.example
 
@@ -37,6 +39,4 @@ next-env.d.ts
 .tmp/
 node_modules/
 .next/
-.env
-.env.local
 .tmp/
