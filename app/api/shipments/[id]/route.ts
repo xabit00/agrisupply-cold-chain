@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { findShipmentById, updateShipment, deleteShipment } from "@/lib/server/shipment-store";
+import { findShipmentById, updateShipment, deleteShipment } from "@/lib/server/shipment-repository";
 import { shipmentStatusUpdateSchema } from "@/lib/validators/shipment.schema";
 import { authorizeApiRequest } from "@/lib/utils/auth-server";
 
@@ -9,7 +9,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const auth = authorizeApiRequest(request);
   if (auth.response) return auth.response;
 
-  const shipment = findShipmentById(params.id);
+  const shipment = await findShipmentById(params.id);
   if (!shipment) {
     return NextResponse.json({ success: false, data: null, error: `Shipment "${params.id}" was not found` }, { status: 404 });
   }
@@ -37,7 +37,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }, { status: 400 });
   }
 
-  const updated = updateShipment(params.id, parsed.data);
+  const updated = await updateShipment(params.id, parsed.data);
   if (!updated) {
     return NextResponse.json({ success: false, data: null, error: `Shipment "${params.id}" was not found` }, { status: 404 });
   }
@@ -48,7 +48,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   const auth = authorizeApiRequest(request, ["Farmer"]);
   if (auth.response) return auth.response;
 
-  const shipment = findShipmentById(params.id);
+  const shipment = await findShipmentById(params.id);
   if (!shipment) {
     return NextResponse.json({ success: false, data: null, error: `Shipment "${params.id}" was not found` }, { status: 404 });
   }
@@ -56,6 +56,6 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     return NextResponse.json({ success: false, data: null, error: "Only draft shipments can be deleted" }, { status: 409 });
   }
 
-  deleteShipment(params.id);
+  await deleteShipment(params.id);
   return NextResponse.json({ success: true, data: shipment });
 }

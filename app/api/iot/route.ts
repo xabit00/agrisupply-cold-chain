@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { sensorReadingListSchema, sensorReadingSchema } from "@/lib/validators/iot.schema";
-import { findShipmentById } from "@/lib/server/shipment-store";
+import { findShipmentById } from "@/lib/server/shipment-repository";
 import { createHistory, fromApiShipment } from "@/lib/server/telemetry-emitter";
 import { authorizeApiRequest } from "@/lib/utils/auth-server";
 
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   if (auth.response) return auth.response;
   const { searchParams } = new URL(request.url);
   const shipmentId = searchParams.get("shipmentId") ?? "SHP-001";
-  const shipment = findShipmentById(shipmentId);
+  const shipment = await findShipmentById(shipmentId);
 
   if (!shipment) {
     return NextResponse.json(

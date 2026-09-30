@@ -12,6 +12,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { Thermometer, Droplets, Wifi, WifiOff, AlertTriangle } from "lucide-react";
+import type { TelemetryStateView } from "@/lib/utils/socket-status";
 
 // ── Types ────────────────────────────────────────────────────
 interface SensorReading {
@@ -32,7 +33,10 @@ interface IotTelemetryPanelProps {
   latest: SensorReading | null;
   envelope: Envelope;
   shipmentId: string;
-  status: "connected" | "disconnected" | "breach" | string;
+  /** Normalised telemetry state — never re-derived inside the panel. */
+  stream: TelemetryStateView;
+  /** ISO timestamp of the newest reading, shown while the stream is not live. */
+  lastUpdatedAt?: string;
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -64,11 +68,14 @@ function StatCard({
   value,
   icon,
   alert,
+  note,
 }: {
   label: string;
   value: string;
   icon: React.ReactNode;
   alert?: boolean;
+  /** Small caption, e.g. "Last known" while the stream is not live. */
+  note?: string;
 }) {
   return (
     <div
@@ -91,6 +98,11 @@ function StatCard({
         >
           {value}
         </p>
+        {note && (
+          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+            {note}
+          </p>
+        )}
       </div>
       {alert && (
         <AlertTriangle className="ml-auto h-5 w-5 text-red-500 shrink-0" />
@@ -121,10 +133,15 @@ export function IotTelemetryPanel({
   latest,
   envelope,
   shipmentId,
-  status,
+  stream,
+  lastUpdatedAt,
 }: IotTelemetryPanelProps) {
-  const isConnected = status === "connected" || status === "breach";
-  const isBreach = status === "breach";
+  const isConnected = stream.isLive;
+  // Cached values stay visible, but they are labelled and time-stamped.
+  const staleNote = !isConnected && latest ? "Last known" : undefined;
+  const lastUpdatedLabel = lastUpdatedAt
+    ? new Date(lastUpdatedAt).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" })
+    : undefined;
 
   const tempAlert =
     latest?.temperature != null &&
@@ -145,22 +162,22 @@ export function IotTelemetryPanel({
     <div className="space-y-4">
 
       {/* ── Connection Banner ── */}
-      <div
-        className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${isConnected
-            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-            : "bg-gray-100 text-gray-500 border border-gray-200"
-          }`}
-      >
+      <div className={`flex flex-wrap items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium ${stream.badgeClass}`}>
         {isConnected ? (
-          <Wifi className="h-4 w-4" />
+          <Wifi className="h-4 w-4 shrink-0" />
         ) : (
-          <WifiOff className="h-4 w-4" />
+          <WifiOff className="h-4 w-4 shrink-0" />
         )}
-        {isConnected
-          ? `Live stream active — Shipment ${shipmentId}`
-          : `Socket disconnected — showing last known readings`}
+        <span className="truncate">
+          {isConnected ? `${stream.shortNote} — Shipment ${shipmentId}` : stream.shortNote}
+        </span>
         {isConnected && (
-          <span className="ml-2 inline-block h-2 w-2 rounded-full bg-emerald-500 pulse-dot" />
+          <span className="ml-1 inline-block h-2 w-2 rounded-full bg-emerald-500 pulse-dot" />
+        )}
+        {!isConnected && lastUpdatedLabel && (
+          <span className="ml-auto text-xs font-normal opacity-80">
+            Last updated {lastUpdatedLabel}
+          </span>
         )}
       </div>
 
@@ -171,12 +188,14 @@ export function IotTelemetryPanel({
           value={formatTemp(latest?.temperature)}
           icon={<Thermometer className="h-5 w-5" />}
           alert={tempAlert}
+          note={staleNote}
         />
         <StatCard
           label="Humidity"
           value={formatHumidity(latest?.humidity)}
           icon={<Droplets className="h-5 w-5" />}
           alert={humAlert}
+          note={staleNote}
         />
       </div>
 

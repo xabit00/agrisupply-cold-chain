@@ -38,6 +38,7 @@ export default function TransporterPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selectedShipment = activeShipments.find((shipment) => shipment.id === selectedId) ?? activeShipments[0];
   const telemetry = useTelemetry(selectedShipment?.id ?? "");
+  const stream = telemetry.view;
   const lastEvaluatedReading = useRef<string | null>(null);
   const addAlert = useTrackingStore((state) => state.addAlert);
   const updateVehiclePosition = useTrackingStore((state) => state.updateVehiclePosition);
@@ -110,7 +111,15 @@ export default function TransporterPage() {
             <h2 className="text-sm font-bold text-slate-900">Active reefer stream</h2>
             <p className="mt-1 text-xs text-slate-500">Pick a shipment; history loads over REST and live readings arrive over Socket.IO.</p>
           </div>
-          <StatusBadge status={telemetry.status} showDot />
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors",
+              stream.badgeClass
+            )}
+          >
+            <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", stream.dotClass)} aria-hidden="true" />
+            {stream.label}
+          </span>
         </div>
 
         <div className="mt-4 grid gap-2 md:grid-cols-3">
@@ -141,7 +150,12 @@ export default function TransporterPage() {
         </p>
       )}
 
-      <SensorAlertBanner activeBreach={telemetry.activeBreach} shipmentId={selectedShipment.id} status={telemetry.status} />
+      <SensorAlertBanner
+        activeBreach={telemetry.activeBreach}
+        shipmentId={selectedShipment.id}
+        view={telemetry.view}
+        lastUpdatedAt={telemetry.lastUpdatedAt}
+      />
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-2">
         <LiveMap center={mapPosition} geofences={geofences} label={`${selectedShipment.id} · ${selectedShipment.produce.name}`} />
@@ -150,7 +164,8 @@ export default function TransporterPage() {
           latest={telemetry.latest ?? null}
           envelope={envelope}
           shipmentId={selectedShipment.id}
-          status={telemetry.status}
+          stream={telemetry.view}
+          lastUpdatedAt={telemetry.lastUpdatedAt}
         />
       </div>
     </div>

@@ -28,6 +28,10 @@ export function useCreateShipmentMutation() {
   const setPendingCount = useOfflineStore((state) => state.setPendingCount);
 
   return useMutation<CreateShipmentResult, Error, ShipmentCreateRequest>({
+    // This mutation owns its offline behavior. TanStack's default "online"
+    // mode pauses before mutationFn runs, which would prevent the durable queue
+    // branch below from ever executing while disconnected.
+    networkMode: "always",
     mutationFn: async (request) => {
       if (!isOnline) {
         await queueService.enqueueMutation(
@@ -122,6 +126,7 @@ export function useUpdateShipmentStatusMutation() {
     { id: string; status: ShipmentStatus; trackingNumber: string },
     StatusMutationContext
   >({
+    networkMode: "always",
     mutationFn: async ({ id, status }) => {
       if (!isOnline) {
         await queueService.enqueueMutation(
@@ -183,6 +188,7 @@ export function useDeleteShipmentMutation() {
   const setPendingCount = useOfflineStore((state) => state.setPendingCount);
 
   return useMutation<{ queued: boolean }, Error, { id: string; trackingNumber: string }>({
+    networkMode: "always",
     mutationFn: async ({ id }) => {
       if (!isOnline) {
         await queueService.enqueueMutation("DELETE_SHIPMENT", `/api/shipments/${id}`, "DELETE", null);

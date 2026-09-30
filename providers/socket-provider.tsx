@@ -5,6 +5,14 @@ import { io, Socket } from "socket.io-client";
 
 export type SocketStatus = "connecting" | "connected" | "reconnecting" | "disconnected";
 
+/**
+ * socket.io stops retrying once `reconnectionAttempts` is exhausted. After that
+ * we keep probing on this slower cadence (and immediately when the browser comes
+ * back online or the tab is focused) so a stream that dropped during a server
+ * restart recovers on its own instead of staying "disconnected" until a reload.
+ */
+const RECOVERY_RETRY_MS = 20000;
+
 interface SocketContextType {
   socket: Socket | null;
   status: SocketStatus;
@@ -41,7 +49,33 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     setSocket(instance);
 
-    const handleConnect = () => setStatus("connected");
+    let recoveryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearRecovery = () => {
+      if (recoveryTimer) {
+        clearTimeout(recoveryTimer);
+        recoveryTimer = null;
+      }
+    };
+
+    const retryConnection = () => {
+      if (instance.connected) return;
+      setStatus("reconnecting");
+      instance.connect();
+    };
+
+    const scheduleRecovery = () => {
+      if (recoveryTimer) return;
+      recoveryTimer = setTimeout(() => {
+        recoveryTimer = null;
+        retryConnection();
+      }, RECOVERY_RETRY_MS);
+    };
+
+    const handleConnect = () => {
+      clearRecovery();
+      setStatus("connected");
+    };
     const handleConnectError = (error: Error) => {
       console.error("[socket] connect_error:", error.message, error);
       setStatus(instance.active ? "reconnecting" : "disconnected");
@@ -50,13 +84,27 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setStatus(instance.active ? "reconnecting" : "disconnected");
     };
     const handleReconnectAttempt = () => setStatus("reconnecting");
-    const handleReconnectFailed = () => setStatus("disconnected");
+    // Retry budget exhausted: keep the UI honest ("disconnected") but armed, so
+    // the stream recovers without a manual page reload.
+    const handleReconnectFailed = () => {
+      setStatus("disconnected");
+      scheduleRecovery();
+    };
+    const handleOnline = () => {
+      clearRecovery();
+      retryConnection();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") handleOnline();
+    };
 
     instance.on("connect", handleConnect);
     instance.on("connect_error", handleConnectError);
     instance.on("disconnect", handleDisconnect);
     instance.io.on("reconnect_attempt", handleReconnectAttempt);
     instance.io.on("reconnect_failed", handleReconnectFailed);
+    window.addEventListener("online", handleOnline);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       instance.off("connect", handleConnect);
@@ -64,6 +112,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       instance.off("disconnect", handleDisconnect);
       instance.io.off("reconnect_attempt", handleReconnectAttempt);
       instance.io.off("reconnect_failed", handleReconnectFailed);
+      window.removeEventListener("online", handleOnline);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearRecovery();
       instance.disconnect();
     };
   }, []);

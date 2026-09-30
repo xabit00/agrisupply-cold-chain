@@ -50,7 +50,7 @@ export const MOCK_USERS: Record<string, MockUserAccount> = {
         region: "Sargodha, Punjab",
       },
     },
-    passwordHash: "$2b$10$7hoagj8pSy9rHjzbnRi6UOb/byduuhXrYWsenAdHWSqJP4QzW8Mnu",
+    passwordHash: "$2b$10$LmXqBnI0UzlQWqSRZkp1ZOAF7lTxq/s1EWTyNINdwRFb/3ChL7Wy6",
   },
   "transporter@agrisupply.pk": {
     user: {
@@ -63,9 +63,9 @@ export const MOCK_USERS: Record<string, MockUserAccount> = {
       createdAt: "2026-01-20T08:00:00Z",
     },
     organization: {
-      displayName: "ArcticHaul Fleet",
+      displayName: "AgriSupply Transport",
     },
-    passwordHash: "$2b$10$7hoagj8pSy9rHjzbnRi6UOb/byduuhXrYWsenAdHWSqJP4QzW8Mnu",
+    passwordHash: "$2b$10$LmXqBnI0UzlQWqSRZkp1ZOAF7lTxq/s1EWTyNINdwRFb/3ChL7Wy6",
   },
   "warehouse@agrisupply.pk": {
     user: {
@@ -85,7 +85,7 @@ export const MOCK_USERS: Record<string, MockUserAccount> = {
         region: "Lahore, Punjab",
       },
     },
-    passwordHash: "$2b$10$7hoagj8pSy9rHjzbnRi6UOb/byduuhXrYWsenAdHWSqJP4QzW8Mnu",
+    passwordHash: "$2b$10$LmXqBnI0UzlQWqSRZkp1ZOAF7lTxq/s1EWTyNINdwRFb/3ChL7Wy6",
   },
   "retailer@agrisupply.pk": {
     user: {
@@ -105,7 +105,7 @@ export const MOCK_USERS: Record<string, MockUserAccount> = {
         region: "Lahore, Punjab",
       },
     },
-    passwordHash: "$2b$10$7hoagj8pSy9rHjzbnRi6UOb/byduuhXrYWsenAdHWSqJP4QzW8Mnu",
+    passwordHash: "$2b$10$LmXqBnI0UzlQWqSRZkp1ZOAF7lTxq/s1EWTyNINdwRFb/3ChL7Wy6",
   },
 };
 

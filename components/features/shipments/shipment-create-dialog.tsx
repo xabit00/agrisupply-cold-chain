@@ -26,6 +26,8 @@ export function ShipmentCreateDialog({
       description="Capture the cold-chain envelope, routing and evidence photos for a new lot."
       className="max-w-2xl"
       disableDismiss={pending}
+      closeOnOverlayClick={false}
+      closeOnEscape={false}
     >
       <MultiStepShipmentForm
         onPendingChange={setPending}

@@ -10,6 +10,7 @@ import { useOfflineStore } from "@/stores/offline.store";
 import { toast } from "@/stores/toast.store";
 import { SensorReading } from "@/lib/types";
 import { formatTemperature } from "@/lib/utils/formatters";
+import { telemetryStateView, type TelemetryStateView } from "@/lib/utils/socket-status";
 import type { SocketStatus } from "@/providers/socket-provider";
 
 /** Rolling chart window — ~60s of readings at a 1.5s tick. */
@@ -25,6 +26,12 @@ export interface TelemetryStream {
   isLoading: boolean;
   status: SocketStatus;
   isConnected: boolean;
+  /** Normalised telemetry state — the only thing UI copy may be derived from. */
+  view: TelemetryStateView;
+  /** True when at least one reading (bootstrap or live) is available. */
+  hasReadings: boolean;
+  /** ISO timestamp of the most recent reading, for "Last updated" labels. */
+  lastUpdatedAt?: string;
 }
 
 function breachKey(reading: SensorReading): string {
@@ -132,6 +139,13 @@ export function useTelemetry(shipmentId: string): TelemetryStream {
   }, [history, live]);
 
   const latest = readings.length > 0 ? readings[readings.length - 1] : undefined;
+  const hasReadings = readings.length > 0;
+
+  // One state for every surface: live / reconnecting / offline-with-cache.
+  const view = useMemo(
+    () => telemetryStateView({ status, hasReadings }),
+    [status, hasReadings]
+  );
 
   return {
     readings,
@@ -140,5 +154,8 @@ export function useTelemetry(shipmentId: string): TelemetryStream {
     isLoading,
     status,
     isConnected,
+    view,
+    hasReadings,
+    lastUpdatedAt: latest?.timestamp,
   };
 }

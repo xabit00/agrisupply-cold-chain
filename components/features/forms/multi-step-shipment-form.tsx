@@ -29,7 +29,7 @@ import {
   STORAGE_MODES,
   requiresPhotoEvidence,
 } from "@/lib/constants/produce-presets";
-import { MOCK_USERS } from "@/lib/constants/roles";
+import { MOCK_USERS, getOrganizationDisplayName } from "@/lib/constants/roles";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useCreateShipmentMutation } from "@/lib/hooks/use-shipment-mutations";
 import { useOfflineStore } from "@/stores/offline.store";
@@ -45,6 +45,14 @@ const STAFF: User[] = Object.values(MOCK_USERS).map((account) => account.user);
 const TRANSPORTERS = STAFF.filter((member) => member.role === "Transporter");
 const WAREHOUSES = STAFF.filter((member) => member.role === "WarehouseAdmin");
 const RETAILERS = STAFF.filter((member) => member.role === "Retailer");
+
+const ORGANIZATION_LABELS: Record<string, string> = {
+  org_arctichaul_fleet: "AgriSupply Fleet",
+};
+
+function organizationLabel(organizationId: string): string {
+  return ORGANIZATION_LABELS[organizationId] ?? getOrganizationDisplayName(organizationId);
+}
 
 const DESTINATION_LABELS: Record<DestinationType, string> = {
   Warehouse: "Cold-storage warehouse",
@@ -153,12 +161,12 @@ function buildDefaultValues(farmerId: string): ShipmentFormData {
       optimalHumidityMax: preset.humidityMax,
     },
     origin: {
-      name: "Green Valley Farm Hub",
-      address: "128 Meadow Way, Quetta Valley CA",
+      name: "Sargodha Farm A",
+      address: "University Road, Sargodha, Punjab",
     },
     destination: {
-      name: "Metro Cold Depot #4",
-      address: "890 Industrial Blvd, San Jose CA",
+      name: "Lahore Cold Storage",
+      address: "Kot Lakhpat, Lahore, Punjab",
     },
   };
 }
@@ -400,7 +408,7 @@ export function MultiStepShipmentForm({
         />
       </FormField>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-4 sm:grid-cols-2">
         <FormField
           id="produce-category"
           label="Category"
@@ -519,7 +527,7 @@ export function MultiStepShipmentForm({
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid min-w-0 grid-cols-1 items-start gap-4 sm:grid-cols-2">
             <FormField
               id="temp-min"
               label="Min temp (°C)"
@@ -618,7 +626,7 @@ export function MultiStepShipmentForm({
 
   const renderStepThree = () => (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-4 sm:grid-cols-2">
         <FormField
           id="destination-type"
           label="Destination type"
@@ -659,7 +667,7 @@ export function MultiStepShipmentForm({
               <option value="">Select a cold-storage facility…</option>
               {WAREHOUSES.map((member) => (
                 <option key={member.id} value={member.id}>
-                  {member.name} · {member.organizationId}
+                  {member.name} · {organizationLabel(member.organizationId)}
                 </option>
               ))}
             </Select>
@@ -685,7 +693,7 @@ export function MultiStepShipmentForm({
               <option value="">Select a retail outlet…</option>
               {RETAILERS.map((member) => (
                 <option key={member.id} value={member.id}>
-                  {member.name} · {member.organizationId}
+                  {member.name} · {organizationLabel(member.organizationId)}
                 </option>
               ))}
             </Select>
@@ -722,7 +730,7 @@ export function MultiStepShipmentForm({
               <option value="">Select a reefer fleet…</option>
               {TRANSPORTERS.map((member) => (
                 <option key={member.id} value={member.id}>
-                  {member.name} · {member.organizationId}
+                  {member.name} · {organizationLabel(member.organizationId)}
                 </option>
               ))}
             </Select>
@@ -730,7 +738,7 @@ export function MultiStepShipmentForm({
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-4 sm:grid-cols-2">
         <FormField
           id="origin-name"
           label="Origin name"
@@ -781,7 +789,7 @@ export function MultiStepShipmentForm({
             {containerFields.map((field, index) => (
               <div
                 key={field.id}
-                className="grid gap-2 sm:grid-cols-[1.4fr_repeat(2,1fr)_auto] sm:items-end"
+                className="grid min-w-0 grid-cols-1 items-start gap-3 sm:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,1fr))_auto] sm:items-end"
               >
                 <FormField
                   id={`container-label-${index}`}
@@ -982,7 +990,7 @@ export function MultiStepShipmentForm({
   const stepsDone = step - 1;
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5" noValidate>
+    <form onSubmit={onSubmit} className="relative isolate min-w-0 space-y-5" noValidate>
       {/* Stepper */}
       <ol className="flex items-center gap-2">
         {STEPS.map((config, index) => {

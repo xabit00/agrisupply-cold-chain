@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { PaginationParams, Shipment } from "@/lib/types";
+import { PaginationParams } from "@/lib/types";
 import { authorizeApiRequest } from "@/lib/utils/auth-server";
-import { listShipments, createShipment } from "@/lib/server/shipment-store";
+import { listShipments, createShipment } from "@/lib/server/shipment-repository";
 import { shipmentSchema } from "@/lib/validators/shipment.schema";
 import {
   PRODUCE_CATEGORIES,
@@ -9,8 +9,6 @@ import {
 } from "@/lib/constants/produce-presets";
 
 export const dynamic = "force-dynamic";
-
-const idempotentCreates = new Map<string, Shipment>();
 
 function parseStatusFilter(value: string | null): PaginationParams["statusFilter"] {
   const match = SHIPMENT_STATUSES.find((candidate) => candidate === value);
@@ -30,7 +28,7 @@ export async function GET(request: Request) {
   const page = Number.parseInt(searchParams.get("page") ?? "1", 10);
   const pageSize = Number.parseInt(searchParams.get("pageSize") ?? "10", 10);
 
-  const result = listShipments({
+  const result = await listShipments({
     page: Number.isNaN(page) ? 1 : page,
     pageSize: Number.isNaN(pageSize) ? 10 : pageSize,
     searchQuery: searchParams.get("searchQuery") ?? undefined,
@@ -48,10 +46,6 @@ export async function POST(request: Request) {
   if (auth.response) return auth.response;
 
   const idempotencyKey = request.headers.get("x-idempotency-key");
-  if (idempotencyKey && idempotentCreates.has(idempotencyKey)) {
-    return NextResponse.json({ success: true, data: idempotentCreates.get(idempotencyKey) });
-  }
-
   let raw: unknown;
 
   try {
@@ -81,7 +75,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const created = createShipment(parsed.data);
-  if (idempotencyKey) idempotentCreates.set(idempotencyKey, created);
+  const created = await createShipment({
+    ...parsed.data,
+    idempotencyKey: idempotencyKey ?? undefined,
+  });
   return NextResponse.json({ success: true, data: created }, { status: 201 });
 }

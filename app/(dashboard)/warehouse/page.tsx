@@ -7,7 +7,12 @@ import { IotTelemetryPanel } from "@/components/features/iot/iot-telemetry-panel
 import { SensorAlertBanner } from "@/components/features/iot/sensor-alert-banner";
 import { ReportExportBar } from "@/components/features/reports/report-export-bar";
 import { useTelemetry } from "@/lib/hooks/use-telemetry";
+import { useSocket } from "@/lib/hooks/use-socket";
 import { useAllShipmentsQuery } from "@/lib/hooks/use-shipments-query";
+import {
+  telemetryValueLabel,
+  type TelemetryStateView,
+} from "@/lib/utils/socket-status";
 import {
   Thermometer, Droplets, Package, TrendingUp,
   AlertTriangle, CheckCircle, Clock, Warehouse
@@ -43,12 +48,16 @@ function StatCard({
 
 // ── Sensor Row ───────────────────────────────────────────────
 function SensorRow({
-  location, temp, humidity, status
+  location, temp, humidity, status, telemetryState, isDemo
 }: {
   location: string;
   temp: number;
   humidity: number;
   status: "normal" | "warning" | "critical";
+  /** Normalised telemetry state of the stream this feed is shown alongside. */
+  telemetryState: TelemetryStateView;
+  /** True for the locally simulated vault feed. */
+  isDemo: boolean;
 }) {
   const statusConfig = {
     normal: { label: "Normal", cls: "badge-green", icon: <CheckCircle className="h-3 w-3" /> },
@@ -56,6 +65,11 @@ function SensorRow({
     critical: { label: "Critical", cls: "badge-red", icon: <AlertTriangle className="h-3 w-3" /> },
   };
   const cfg = statusConfig[status];
+  const statusLabel = telemetryValueLabel(cfg.label, telemetryState, isDemo);
+  const fallbackLabel =
+    isDemo && !statusLabel.startsWith("Demo")
+      ? `Demo · ${statusLabel}`
+      : statusLabel;
   return (
     <div className={`flex items-center justify-between p-3 rounded-lg border ${status === "critical" ? "border-red-200 bg-red-50" :
         status === "warning" ? "border-yellow-200 bg-yellow-50" :
@@ -73,7 +87,7 @@ function SensorRow({
         </div>
       </div>
       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.cls}`}>
-        {cfg.icon} {cfg.label}
+        {cfg.icon} {fallbackLabel}
       </span>
     </div>
   );
@@ -91,6 +105,7 @@ const MOCK_SENSORS = [
 // ── Main Page ────────────────────────────────────────────────
 export default function WarehousePage() {
   const { data, isLoading } = useAllShipmentsQuery();
+  const { status: socketStatus, isConnected: socketConnected } = useSocket();
   const shipments = data?.items ?? [];
 
   // Live telemetry for first active shipment
@@ -99,9 +114,21 @@ export default function WarehousePage() {
   );
   const telemetry = useTelemetry(activeShipment?.id ?? "");
 
-  // Animated sensor temps (simulate live readings)
+  // Stream-fed telemetry (panel + banner) and the locally simulated vault feed
+  // both project the same normalised state, so no two surfaces can contradict
+  // each other and stale values are never labelled as current.
+  const stream = telemetry.view;
+  const connectionLabel = socketConnected ? "Connected" : "Disconnected";
+  const connectionClass = socketConnected
+    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+    : "border-slate-200 bg-slate-100 text-slate-600";
+  const connectionDot = socketConnected ? "bg-emerald-500 pulse-dot" : "bg-slate-400";
+
+  // Animated vault readings (local demo feed). The walk pauses while the stream
+  // is down so the values really are the "last known" ones.
   const [sensors, setSensors] = useState(MOCK_SENSORS);
   useEffect(() => {
+    if (!socketConnected) return;
     const interval = setInterval(() => {
       setSensors((prev) =>
         prev.map((s) => ({
@@ -112,7 +139,7 @@ export default function WarehousePage() {
       );
     }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [socketConnected]);
 
   // Stats
   const total = shipments.length;
@@ -164,7 +191,7 @@ export default function WarehousePage() {
         <StatCard
           label="Critical Alerts"
           value={critical}
-          sub="Sensors breaching range"
+          sub="Simulated vault feed"
           icon={<AlertTriangle className="h-4 w-4" />}
           color={critical > 0 ? "red" : "green"}
         />
@@ -175,7 +202,8 @@ export default function WarehousePage() {
         <SensorAlertBanner
           activeBreach={telemetry.activeBreach}
           shipmentId={activeShipment.id}
-          status={telemetry.status}
+          view={stream}
+          lastUpdatedAt={telemetry.lastUpdatedAt}
         />
       )}
 
@@ -190,17 +218,24 @@ export default function WarehousePage() {
                 Vault Sensor Network
               </h3>
               <p className="text-xs text-gray-400 mt-0.5">
-                Live readings — refreshing every 3s
+                {socketConnected
+                  ? "Socket connected · simulated vault fallback refreshing every 3s"
+                  : `Socket ${socketStatus} · mock sensor fallback remains available`}
               </p>
             </div>
-            <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 pulse-dot" />
-              Live
-            </span>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${connectionClass}`}>
+                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${connectionDot}`} />
+                {connectionLabel}
+              </span>
+              <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-700">
+                Demo
+              </span>
+            </div>
           </div>
           <div className="space-y-2">
             {sensors.map((s) => (
-              <SensorRow key={s.id} {...s} />
+              <SensorRow key={s.id} {...s} telemetryState={stream} isDemo />
             ))}
           </div>
         </div>
@@ -213,7 +248,8 @@ export default function WarehousePage() {
               latest={telemetry.latest ?? null}
               envelope={envelope}
               shipmentId={activeShipment.id}
-              status={telemetry.status}
+              stream={stream}
+              lastUpdatedAt={telemetry.lastUpdatedAt}
             />
           ) : (
             <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm flex flex-col items-center justify-center text-center h-full">

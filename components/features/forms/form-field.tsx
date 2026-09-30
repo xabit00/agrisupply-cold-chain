@@ -45,20 +45,26 @@ export function FormField({
     : children;
 
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <div className="flex items-center justify-between gap-2">
-        <label htmlFor={id} className="text-xs font-semibold text-slate-700">
+    <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
+      <div className="flex min-h-5 min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+        <label
+          htmlFor={id}
+          className="static block min-w-0 text-xs font-semibold leading-5 text-slate-700"
+        >
           {label}
           {required && <span className="ml-0.5 text-rose-500">*</span>}
         </label>
         {hint && (
-          <span id={hintId} className="text-[11px] text-slate-400">
+          <span
+            id={hintId}
+            className="block shrink-0 text-[11px] leading-4 text-slate-400"
+          >
             {hint}
           </span>
         )}
       </div>
 
-      {child}
+      <div className="relative z-0 min-w-0 w-full">{child}</div>
 
       {error && (
         <p id={errorId} className="flex items-start gap-1 text-xs font-medium text-rose-600">
