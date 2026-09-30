@@ -27,8 +27,15 @@ const {
 
 const dev = process.argv.includes("--dev") || process.env.NODE_ENV === "development";
 process.env.INTERNAL_API_KEY ||= randomBytes(32).toString("hex");
-process.env.JWT_SECRET ||= randomBytes(48).toString("hex");
-const port = Number(process.env.PORT) || 3000;
+if (!process.env.JWT_SECRET) {
+  if (dev) {
+    process.env.JWT_SECRET = randomBytes(48).toString("hex");
+  } else {
+    throw new Error("JWT_SECRET must be configured in production");
+  }
+}
+const port = Number(process.env.PORT || 3000);
+const host = "0.0.0.0";
 const TICK_MS = 1500;
 const SNAPSHOT_TTL_MS = 10000;
 const ACTIVE_STAGES = new Set(["Harvested", "InTransit", "ColdStorage"]);
@@ -143,10 +150,10 @@ app.prepare().then(() => {
     });
   });
 
-  httpServer.listen(port, () => {
+  httpServer.listen(port, host, () => {
     // eslint-disable-next-line no-console
     console.log(
-      `> AgriSupply ready on http://localhost:${port} (${dev ? "dev" : "production"} + socket.io)`
+      `> AgriSupply ready on http://${host}:${port} (${dev ? "dev" : "production"} + socket.io)`
     );
   });
 

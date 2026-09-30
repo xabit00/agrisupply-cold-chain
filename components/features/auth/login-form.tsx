@@ -13,10 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 const PRESETS = [
-  { role: "Farmer" as UserRole, name: "Muhammad Yousaf", email: "farmer@agrisupply.pk", badge: "bg-emerald-100 text-emerald-800" },
-  { role: "Transporter" as UserRole, name: "Asif Javed", email: "transporter@agrisupply.pk", badge: "bg-sky-100 text-sky-800" },
-  { role: "WarehouseAdmin" as UserRole, name: "Sara Ahmed", email: "warehouse@agrisupply.pk", badge: "bg-amber-100 text-amber-800" },
-  { role: "Retailer" as UserRole, name: "Nadia Hussain", email: "retailer@agrisupply.pk", badge: "bg-indigo-100 text-indigo-800" },
+  { role: "Farmer" as UserRole, name: "Muhammad Yousaf", email: "farmer@agrisupply.pk", badge: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  { role: "Transporter" as UserRole, name: "Asif Javed", email: "transporter@agrisupply.pk", badge: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  { role: "WarehouseAdmin" as UserRole, name: "Sara Ahmed", email: "warehouse@agrisupply.pk", badge: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  { role: "Retailer" as UserRole, name: "Nadia Hussain", email: "retailer@agrisupply.pk", badge: "border-emerald-200 bg-emerald-50 text-emerald-700" },
 ];
 
 export function LoginForm() {
@@ -62,68 +62,84 @@ export function LoginForm() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+    <div className="space-y-7">
+      <div className="space-y-3">
+        <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">
           Demo Persona Fast-Select (1-Click)
         </label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           {PRESETS.map((preset) => (
             <button
               type="button"
               key={preset.role}
               onClick={() => handleSelectPreset(preset)}
-              className={`flex flex-col items-start rounded-lg border p-2 text-left transition-all ${
+              className={`flex min-h-[90px] flex-col items-start rounded-xl border px-3.5 py-3 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16a34a] focus-visible:ring-offset-2 active:translate-y-px ${
                 selectedRole === preset.role
-                  ? "border-emerald-600 bg-emerald-50/70 shadow-sm ring-1 ring-emerald-500"
-                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                  ? "border-[#16a34a] bg-emerald-50 shadow-[0_8px_20px_rgba(22,163,74,0.10)] ring-1 ring-[#16a34a]"
+                  : "border-slate-200 bg-slate-50/70 hover:border-emerald-300 hover:bg-emerald-50/40"
               }`}
             >
               <div className="flex w-full items-center justify-between">
-                <span className="text-xs font-bold text-slate-900">{preset.role}</span>
-                <span className={`rounded border px-1 py-0.2 text-[10px] font-medium ${preset.badge}`}>
+                <span className="text-xs font-bold tracking-[-0.01em] text-slate-950">{preset.role}</span>
+                <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${preset.badge}`}>
                   {preset.role.slice(0, 4)}
                 </span>
               </div>
-              <span className="mt-1 text-xs text-slate-600">{preset.name}</span>
-              <span className="text-[11px] text-slate-400 truncate w-full">{preset.email}</span>
+              <span className="mt-2 text-xs font-medium text-slate-700">{preset.name}</span>
+              <span className="mt-0.5 w-full truncate text-[11px] text-slate-500">{preset.email}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="relative">
+      <div className="relative py-0.5">
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t border-slate-200" />
         </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-2 text-slate-400">Or enter credentials</span>
+        <div className="relative flex justify-center text-[11px] font-semibold uppercase tracking-[0.1em]">
+          <span className="bg-[#fbfdfb] px-3 text-slate-500">Or enter credentials</span>
         </div>
       </div>
 
       {authError && (
-        <div className="rounded-md border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive">
+        <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-xs font-medium leading-5 text-destructive">
           <strong>Authentication Error:</strong> {authError}
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-slate-700">Email Address</label>
-          <Input type="email" placeholder="name@agrisupply.pk" {...register("email")} disabled={isLoading} />
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-slate-800">Email Address</label>
+          <Input
+            type="email"
+            placeholder="name@agrisupply.pk"
+            className="h-12 rounded-xl border-slate-300 bg-white px-4 shadow-none placeholder:text-slate-400 hover:border-emerald-400 focus-visible:border-[#16a34a] focus-visible:ring-[#16a34a]/20"
+            {...register("email")}
+            disabled={isLoading}
+          />
           {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold text-slate-700">Password</label>
-            <span className="text-[11px] text-slate-400">Default: Pass123!</span>
+            <label className="text-sm font-semibold text-slate-800">Password</label>
+            <span className="text-[11px] font-medium text-slate-500">Default: Pass123!</span>
           </div>
-          <Input type="password" placeholder="••••••••" {...register("password")} disabled={isLoading} />
+          <Input
+            type="password"
+            placeholder="••••••••"
+            className="h-12 rounded-xl border-slate-300 bg-white px-4 shadow-none placeholder:text-slate-400 hover:border-emerald-400 focus-visible:border-[#16a34a] focus-visible:ring-[#16a34a]/20"
+            {...register("password")}
+            disabled={isLoading}
+          />
           {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
         </div>
 
-        <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isLoading}>
+        <Button
+          type="submit"
+          className="h-12 w-full rounded-xl bg-[#16a34a] text-sm font-bold text-white shadow-[0_10px_24px_rgba(22,163,74,0.22)] transition duration-200 hover:bg-emerald-700 hover:shadow-[0_12px_28px_rgba(22,163,74,0.28)] active:translate-y-px"
+          disabled={isLoading}
+        >
           {isLoading ? "Verifying Credentials..." : `Sign In as ${selectedRole}`}
         </Button>
       </form>
